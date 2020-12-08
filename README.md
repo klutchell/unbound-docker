@@ -84,7 +84,7 @@ documentation and mounting your own config directory.
 - <https://nlnetlabs.nl/documentation/unbound/unbound.conf/>
 - <https://nlnetlabs.nl/documentation/unbound/howto-optimise/>
 
-### Example
+### Examples
 
 Use unbound-dnscrypt as upstream DNS for [Pi-Hole](https://pi-hole.net/).
 

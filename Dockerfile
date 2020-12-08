@@ -1,8 +1,12 @@
 ARG ARCH=amd64
 
-FROM buildroot-rootfs-$ARCH:2020.08.2 as buildroot
+FROM klutchell/buildroot-rootfs-$ARCH:2020.11 as buildroot
 
-COPY . .
+COPY package ./package
+
+COPY rootfs_overlay ./rootfs_overlay
+
+COPY config.pkg ./config.pkg
 
 RUN support/kconfig/merge_config.sh -m .config config.pkg
 
