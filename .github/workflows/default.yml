@@ -10,7 +10,7 @@ env:
 jobs:
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     strategy:
       matrix:
@@ -42,7 +42,7 @@ jobs:
   deploy:
     if: github.ref == 'refs/heads/main'
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
       - name: docker install
