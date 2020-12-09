@@ -1,6 +1,19 @@
-ARG ARCH=amd64
+ARG BR_VERSION=2020.11
 
-FROM klutchell/buildroot-rootfs-$ARCH:2020.11 as buildroot
+# hadolint ignore=DL3029
+FROM --platform=$BUILDPLATFORM klutchell/buildroot-rootfs-amd64:$BR_VERSION as rootfs-amd64
+
+# hadolint ignore=DL3029
+FROM --platform=$BUILDPLATFORM klutchell/buildroot-rootfs-arm64:$BR_VERSION as rootfs-arm64
+
+# hadolint ignore=DL3029
+FROM --platform=$BUILDPLATFORM klutchell/buildroot-rootfs-arm32v7:$BR_VERSION as rootfs-armv7
+
+# hadolint ignore=DL3029
+FROM --platform=$BUILDPLATFORM klutchell/buildroot-rootfs-arm32v6:$BR_VERSION as rootfs-armv6
+
+# hadolint ignore=DL3006
+FROM rootfs-$TARGETARCH$TARGETVARIANT as build
 
 COPY package ./package
 
@@ -23,7 +36,7 @@ RUN tar xpf /home/br-user/output/images/rootfs.tar -C /rootfs
 
 FROM scratch
 
-COPY --from=buildroot rootfs/ /
+COPY --from=build rootfs/ /
 
 ENTRYPOINT [ "unbound" ]
 
