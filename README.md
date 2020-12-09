@@ -19,22 +19,32 @@ Simply pulling `klutchell/unbound-dnscrypt` should retrieve the correct image fo
 ## Build
 
 ```bash
-# build for amd64
-docker build . --build-arg ARCH=amd64 -t klutchell/unbound-dnscrypt
+# enable docker experimental mode
+export DOCKER_CLI_EXPERIMENTAL=enabled
 
-# build for arm64
-docker build . --build-arg ARCH=arm64 -t klutchell/unbound-dnscrypt
+# use buildx to build and load an amd64 image
+docker buildx build . --pull --platform linux/amd64 \
+  --tag klutchell/unbound-dnscrypt:latest --load
 
-# build for arm32v7
-docker build . --build-arg ARCH=arm32v7 -t klutchell/unbound-dnscrypt
+# use buildx to build and load an arm64 image
+docker buildx build . --pull --platform linux/arm64 \
+  --tag klutchell/unbound-dnscrypt:latest --load
 
-# build for arm32v6
-docker build . --build-arg ARCH=arm32v6 -t klutchell/unbound-dnscrypt
+# use buildx to build and load an arm32v7 image
+docker buildx build . --pull --platform linux/arm/v7 \
+  --tag klutchell/unbound-dnscrypt:latest --load
+
+# use buildx to build and load an arm32v6 image
+docker buildx build . --pull --platform linux/arm/v6 \
+  --tag klutchell/unbound-dnscrypt:latest --load
 ```
 
 ## Test
 
 ```bash
+# optionally enable qemu if testing an arch that does not match your host
+docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
 # run a detached unbound-dnscrypt container instance
 docker run --rm -d --name unbound-dnscrypt klutchell/unbound-dnscrypt
 
@@ -46,6 +56,20 @@ docker exec unbound-dnscrypt dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec
 
 # stop and remove the detached container instance
 docker stop unbound-dnscrypt
+```
+
+## Deploy
+
+Requires `docker login` to authenticate with your provided repo tag.
+
+```bash
+# enable docker experimental mode
+export DOCKER_CLI_EXPERIMENTAL=enabled
+
+# use buildx to build and push a multiarch manifest
+docker buildx build . --pull \
+  --platform linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6 \
+  --tag klutchell/unbound-dnscrypt:latest --push
 ```
 
 ## Usage

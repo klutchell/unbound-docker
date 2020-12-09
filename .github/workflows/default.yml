@@ -1,0 +1,81 @@
+name: default
+
+on: push
+
+env:
+  BR_VERSION: "2020.11"
+  UNBOUND_VERSION: "1.13.0"
+  DOCKER_CLI_EXPERIMENTAL: enabled
+
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        PLATFORM: [linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6]
+
+    steps:
+      - name: docker install
+        run: curl -fsSL get.docker.com | sh
+
+      - name: source checkout
+        uses: actions/checkout@v1
+
+      - name: buildx create
+        run: docker buildx create --use --driver docker-container
+
+      - name: image build
+        run: docker buildx build . --pull --build-arg BR_VERSION --platform ${{ matrix.PLATFORM }} --tag ${GITHUB_REPOSITORY} --load
+
+      - name: qemu register
+        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+      - name: image test
+        run: |
+          docker run --rm -d --name unbound-dnscrypt ${GITHUB_REPOSITORY}
+          docker exec unbound-dnscrypt dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q NOERROR
+          docker exec unbound-dnscrypt dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q SERVFAIL
+          docker stop unbound-dnscrypt
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: docker install
+        run: curl -fsSL get.docker.com | sh
+
+      - name: source checkout
+        uses: actions/checkout@v1
+
+      - name: github login
+        run: echo "${{ secrets.CR_PAT }}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
+
+      - name: dockerhub login
+        run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login docker.io -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+      
+      - name: buildx create
+        run: docker buildx create --use --driver docker-container
+
+      - name: manifest build
+        run: >-
+            docker buildx build . --pull --push
+            --platform linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6
+            --build-arg BR_VERSION
+            --label "org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            --label "org.opencontainers.image.version=${UNBOUND_VERSION}"
+            --label "org.opencontainers.image.revision=$(git describe --tags --always --dirty)"
+            --tag docker.io/${{ secrets.DOCKERHUB_REPOSITORY }}:${UNBOUND_VERSION}
+            --tag docker.io/${{ secrets.DOCKERHUB_REPOSITORY }}:latest
+            --tag ghcr.io/${GITHUB_REPOSITORY}:${UNBOUND_VERSION}
+            --tag ghcr.io/${GITHUB_REPOSITORY}:latest
+
+      - name: dockerhub description
+        uses: peter-evans/dockerhub-description@v2.1.0
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+          DOCKERHUB_REPOSITORY: ${{ secrets.DOCKERHUB_REPOSITORY }}
