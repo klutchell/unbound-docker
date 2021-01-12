@@ -116,7 +116,7 @@ Use unbound-dnscrypt as upstream DNS for [Pi-Hole](https://pi-hole.net/).
 # run unbound-dnscrypt and bind to port 5053 to avoid conflicts with pihole on port 53
 docker run -d --name unbound-dnscrypt \
   --restart=unless-stopped \
-  -p 5053:53/tcp -p 5053:53/udp \
+  -p 5335:53/tcp -p 5335:53/udp \
   klutchell/unbound-dnscrypt
 
 # run pihole and bind to host network with 127.0.0.1:5053 as DNS1/DNS2
@@ -124,8 +124,8 @@ docker run -d --name pihole \
     -e ServerIP=your_IP_here \
     -e TZ=time_zone_here \
     -e WEBPASSWORD=Password \
-    -e DNS1=127.0.0.1#5053 \
-    -e DNS2=127.0.0.1#5053 \
+    -e DNS1=127.0.0.1#5335 \
+    -e DNS2=127.0.0.1#5335 \
     -v ~/pihole/:/etc/pihole/ \
     --dns=127.0.0.1 \
     --dns=1.1.1.1 \
@@ -159,15 +159,15 @@ services:
       - 'ServerIP=192.168.8.8'
       - 'TZ=America/Toronto'
       - 'WEBPASSWORD=secretpassword'
-      - 'DNS1=127.0.0.1#5053'
-      - 'DNS2=127.0.0.1#5053'
+      - 'DNS1=127.0.0.1#5335'
+      - 'DNS2=127.0.0.1#5335'
       - 'INTERFACE=eth0'
       - 'DNSMASQ_LISTENING=eth0'
   unbound-dnscrypt:
     image: klutchell/unbound-dnscrypt
     ports:
-      - '5053:53/tcp'
-      - '5053:53/udp'
+      - '5335:53/tcp'
+      - '5335:53/udp'
 ```
 
 ## Contributing
