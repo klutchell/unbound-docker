@@ -4,7 +4,7 @@ on: push
 
 env:
   BR_VERSION: "2020.11"
-  UNBOUND_VERSION: "1.13.0"
+  UNBOUND_VERSION: "1.13.1"
   DOCKER_CLI_EXPERIMENTAL: enabled
 
 jobs:

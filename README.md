@@ -45,16 +45,16 @@ docker buildx build . --pull --platform linux/arm/v6 \
 # optionally enable qemu if testing an arch that does not match your host
 docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
-# run a detached unbound-dnscrypt container instance
+# run a detached unbound-dnscrypt container
 docker run --rm -d --name unbound-dnscrypt klutchell/unbound-dnscrypt
 
-# run dig with dnssec to test an NOERROR endpoint
+# run dig with dnssec to test an example NOERROR endpoint
 docker exec unbound-dnscrypt dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec
 
-# run dig with dnssec to test an SERVFAIL endpoint
+# run dig with dnssec to test an example SERVFAIL endpoint
 docker exec unbound-dnscrypt dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec
 
-# stop and remove the detached container instance
+# stop and remove the container
 docker stop unbound-dnscrypt
 ```
 
