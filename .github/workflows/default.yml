@@ -121,8 +121,6 @@ jobs:
         with:
           src: localhost:5000/${{ env.image_name }}:latest
           dst: |
-            ghcr.io/${{ env.image_name }}:${{ env.PACKAGE_VERSION }}
-            ghcr.io/${{ env.image_name }}:latest
             docker.io/${{ env.image_name }}:${{ env.PACKAGE_VERSION }}
             docker.io/${{ env.image_name }}:latest
       -
