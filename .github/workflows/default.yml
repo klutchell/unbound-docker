@@ -113,7 +113,7 @@ jobs:
       -
         name: Push Image to multiple registries
         if: github.ref == 'refs/heads/main'
-        uses: akhilerm/tag-push-action@v1.0.0
+        uses: akhilerm/tag-push-action@v1.1.0
         with:
           src: localhost:5000/${{ env.image_name }}:latest
           dst: |
