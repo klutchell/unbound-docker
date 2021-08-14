@@ -3,89 +3,129 @@ name: default
 on: push
 
 env:
-  BR_VERSION: "2020.11"
-  UNBOUND_VERSION: "1.13.1"
-  DOCKER_CLI_EXPERIMENTAL: enabled
+  PACKAGE_VERSION: "1.13.1"
+  PLATFORMS: "linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6"
 
 jobs:
 
-  test:
+  build:
     runs-on: ubuntu-20.04
-
-    strategy:
-      matrix:
-        PLATFORM: [linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6]
-
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
     steps:
-      - name: docker install
-        run: curl -fsSL get.docker.com | sh
-
-      - name: source checkout
-        uses: actions/checkout@v1
-
-      - name: buildx create
-        run: docker buildx create --use --driver docker-container
-
-      - name: image build
-        run: docker buildx build . --pull --build-arg BR_VERSION --platform ${{ matrix.PLATFORM }} --tag ${GITHUB_REPOSITORY} --load
-
-      - name: qemu register
-        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-
-      - name: image test
-        run: |
-          docker run --rm -d --name unbound-dnscrypt ${GITHUB_REPOSITORY}
-          docker exec unbound-dnscrypt dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q NOERROR
-          docker exec unbound-dnscrypt dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q SERVFAIL
-          docker stop unbound-dnscrypt
-
-  deploy:
-    if: github.ref == 'refs/heads/main'
-    needs: test
-    runs-on: ubuntu-20.04
-
-    steps:
-      # Copied from https://github.com/jens-maus/RaspberryMatic/blob/ea6b8ce0dd2d53ea88b2766ba8d7f8e1d667281f/.github/workflows/ci.yml#L34-L40
-      # and https://github.com/actions/virtual-environments/issues/709#issuecomment-612569242
-      - name: Free disk space
+      - 
+        name: Free disk space
         run: |
           df --human-readable
           sudo apt clean
-          docker rmi $(docker image ls --all --quiet)
-          rm --recursive --force "$AGENT_TOOLSDIRECTORY"
+          docker rmi $(docker image ls --all --quiet) || true
+          rm -rf "${AGENT_TOOLSDIRECTORY}"
           df --human-readable
-
-      - name: docker install
-        run: curl -fsSL get.docker.com | sh
-
-      - name: source checkout
-        uses: actions/checkout@v1
-
-      - name: github login
-        run: echo "${{ secrets.CR_PAT }}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
-
-      - name: dockerhub login
-        run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login docker.io -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-      
-      - name: buildx create
-        run: docker buildx create --use --driver docker-container
-
-      - name: manifest build
-        run: >-
-            docker buildx build . --pull --push
-            --platform linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6
-            --build-arg BR_VERSION
-            --label "org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-            --label "org.opencontainers.image.version=${UNBOUND_VERSION}"
-            --label "org.opencontainers.image.revision=$(git describe --tags --always --dirty)"
-            --tag docker.io/${{ secrets.DOCKERHUB_REPOSITORY }}:${UNBOUND_VERSION}
-            --tag docker.io/${{ secrets.DOCKERHUB_REPOSITORY }}:latest
-            --tag ghcr.io/${GITHUB_REPOSITORY}:${UNBOUND_VERSION}
-            --tag ghcr.io/${GITHUB_REPOSITORY}:latest
-
-      - name: dockerhub description
-        uses: peter-evans/dockerhub-description@v2.1.0
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
-          DOCKERHUB_REPOSITORY: ${{ secrets.DOCKERHUB_REPOSITORY }}
+      # -
+      #   name: Maximize build space
+      #   uses: easimon/maximize-build-space@master
+      #   with:
+      #     remove-dotnet: 'true'
+      #     remove-android: 'true'
+      #     remove-haskell: 'true'
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      - 
+        name: Set vars
+        id: vars
+        run: |
+          echo "image_title=${{ github.repository }}" >> $GITHUB_ENV
+          echo "image_authors=${{ github.repository_owner }}" >> $GITHUB_ENV
+          echo "image_name=${{ github.repository }}" >> $GITHUB_ENV
+          echo "image_created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
+          echo "image_version=${{ env.PACKAGE_VERSION }}" >> $GITHUB_ENV
+          echo "image_revision=$(git describe --tags --always --dirty)" >> $GITHUB_ENV
+          echo "image_source=${{ github.server_url }}/${{ github.repository }}" >> $GITHUB_ENV
+          echo "image_url=${{ github.server_url }}/${{ github.repository }}" >> $GITHUB_ENV
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      -
+        name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+        with:
+          driver-opts: network=host
+      - 
+        name: Build and push to local registry
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: Dockerfile
+          platforms: ${{ env.PLATFORMS }}
+          build-args: |
+            PACKAGE_VERSION=${{ env.PACKAGE_VERSION }}
+          tags: |
+            localhost:5000/${{ env.image_name }}:latest
+          labels: |
+            "org.opencontainers.image.authors=${{ env.image_authors }}"
+            "org.opencontainers.image.title=${{ env.image_title }}"
+            "org.opencontainers.image.created=${{ env.image_created }}"
+            "org.opencontainers.image.version=${{ env.image_version }}"
+            "org.opencontainers.image.revision=${{ env.image_revision }}"
+            "org.opencontainers.image.source=${{ env.image_source }}"
+            "org.opencontainers.image.url=${{ env.image_url }}"
+          cache-from: |
+            type=gha
+            type=registry,ref=ghcr.io/${{ env.image_name }}:latest
+            type=registry,ref=ghcr.io/${{ env.image_name }}:${{ env.PACKAGE_VERSION }}
+            type=registry,ref=docker.io/${{ env.image_name }}:latest
+            type=registry,ref=docker.io/${{ env.image_name }}:${{ env.PACKAGE_VERSION }}
+          cache-to: |
+            type=gha,mode=max
+          push: true
+      -
+        name: Test each platform
+        run: |
+          for platform in ${PLATFORMS//,/ }
+          do
+            docker pull --platform ${platform} localhost:5000/${{ env.image_name }}:latest
+            docker run --rm -d --name sut ${{ env.image_name }}:latest
+            docker exec sut dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q NOERROR
+            docker exec sut dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q SERVFAIL
+            docker stop sut
+          done
+      -
+        name: Login to GitHub Container Registry
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      -
+        name: Login to DockerHub
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@v1 
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Push Image to multiple registries
+        if: github.ref == 'refs/heads/main'
+        uses: akhilerm/tag-push-action@v1.0.0
+        with:
+          src: localhost:5000/${{ env.image_name }}:latest
+          dst: |
+            ghcr.io/${{ env.image_name }}:${{ env.PACKAGE_VERSION }}
+            ghcr.io/${{ env.image_name }}:latest
+            docker.io/${{ env.image_name }}:${{ env.PACKAGE_VERSION }}
+            docker.io/${{ env.image_name }}:latest
+      -
+        name: Set DockerHub description
+        if: github.ref == 'refs/heads/main'
+        uses: peter-evans/dockerhub-description@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          repository: ${{ env.image_name }}
