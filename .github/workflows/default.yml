@@ -8,7 +8,7 @@ env:
 
 jobs:
 
-  build:
+  docker:
     runs-on: ubuntu-20.04
     services:
       registry:
@@ -83,6 +83,10 @@ jobs:
           cache-to: |
             type=gha,mode=max
           push: true
+      -
+        name: Inspect
+        run: |
+          docker buildx imagetools inspect localhost:5000/${{ env.image_name }}:latest
       -
         name: Test each platform
         run: |
