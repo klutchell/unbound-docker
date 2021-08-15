@@ -41,12 +41,13 @@ jobs:
           echo "image_title=${{ github.repository }}" >> $GITHUB_ENV
           echo "image_authors=${{ github.repository_owner }}" >> $GITHUB_ENV
           echo "image_name=${{ github.repository }}" >> $GITHUB_ENV
-          echo "image_created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
+          echo "image_created=$(date --iso-8601=seconds)" >> $GITHUB_ENV
           echo "image_version=${{ env.PACKAGE_VERSION }}" >> $GITHUB_ENV
           echo "image_branch=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
           echo "image_revision=$(git rev-parse --abbrev-ref HEAD)-$(git describe --tags --always --dirty)" >> $GITHUB_ENV
           echo "image_source=${{ github.server_url }}/${{ github.repository }}" >> $GITHUB_ENV
           echo "image_url=${{ github.server_url }}/${{ github.repository }}" >> $GITHUB_ENV
+          echo "image_documentation=${{ github.server_url }}/${{ github.repository }}" >> $GITHUB_ENV
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -78,6 +79,7 @@ jobs:
             "org.opencontainers.image.revision=${{ env.image_revision }}"
             "org.opencontainers.image.source=${{ env.image_source }}"
             "org.opencontainers.image.url=${{ env.image_url }}"
+            "org.opencontainers.image.url=${{ env.image_documentation }}"
           cache-from: |
             type=gha
             type=registry,ref=ghcr.io/${{ env.image_name }}:latest
@@ -162,19 +164,33 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
-        name: Push development images to GitHub Container Registry
+        name: Push revision images to GitHub Container Registry
         if: steps.checkUser.outputs.result == 'true'
         uses: akhilerm/tag-push-action@v1.1.0
         with:
           src: localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
           dst: ghcr.io/${{ env.image_name }}:${{ env.image_revision }}
       -
-        name: Push development images to DockerHub
+        name: Push revision images to DockerHub
         if: steps.checkUser.outputs.result == 'true'
         uses: akhilerm/tag-push-action@v1.1.0
         with:
           src: localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
           dst: docker.io/${{ env.image_name }}:${{ env.image_revision }}
+      -
+        name: Push branch images to GitHub Container Registry
+        if: steps.checkUser.outputs.result == 'true'
+        uses: akhilerm/tag-push-action@v1.1.0
+        with:
+          src: localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
+          dst: ghcr.io/${{ env.image_name }}:${{ env.image_branch }}
+      -
+        name: Push branch images to DockerHub
+        if: steps.checkUser.outputs.result == 'true'
+        uses: akhilerm/tag-push-action@v1.1.0
+        with:
+          src: localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
+          dst: docker.io/${{ env.image_name }}:${{ env.image_branch }}
       -
         name: Push versioned images to GitHub Container Registry
         if: github.ref == 'refs/heads/main'

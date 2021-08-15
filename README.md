@@ -19,8 +19,12 @@ Simply pulling `klutchell/unbound-dnscrypt` should retrieve the correct image fo
 ## Build
 
 ```bash
-# enable docker experimental mode
+# enable docker buildkit and experimental mode
+export DOCKER_BUILDKIT=1
 export DOCKER_CLI_EXPERIMENTAL=enabled
+
+# enable QEMU for arm emulation
+docker run --rm --privileged multiarch/qemu-user-static:5.2.0-2 --reset -p yes
 
 # use buildx to build and load an amd64 image
 docker buildx build . --pull --platform linux/amd64 \
@@ -42,8 +46,8 @@ docker buildx build . --pull --platform linux/arm/v6 \
 ## Test
 
 ```bash
-# optionally enable qemu if testing an arch that does not match your host
-docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+# enable QEMU for arm emulation
+docker run --rm --privileged multiarch/qemu-user-static:5.2.0-2 --reset -p yes
 
 # run a detached unbound-dnscrypt container
 docker run --rm -d --name unbound-dnscrypt klutchell/unbound-dnscrypt
@@ -63,8 +67,12 @@ docker stop unbound-dnscrypt
 Requires `docker login` to authenticate with your provided repo tag.
 
 ```bash
-# enable docker experimental mode
+# enable docker buildkit and experimental mode
+export DOCKER_BUILDKIT=1
 export DOCKER_CLI_EXPERIMENTAL=enabled
+
+# enable QEMU for arm emulation
+docker run --rm --privileged multiarch/qemu-user-static:5.2.0-2 --reset -p yes
 
 # use buildx to build and push a multiarch manifest
 docker buildx build . --pull \
