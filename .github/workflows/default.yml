@@ -115,14 +115,33 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
-        name: Push Image to multiple registries
+        name: Push versioned images to GitHub Container Registry
         if: github.ref == 'refs/heads/main'
         uses: akhilerm/tag-push-action@v1.1.0
         with:
           src: localhost:5000/${{ env.image_name }}:latest
-          dst: |
-            docker.io/${{ env.image_name }}:${{ env.PACKAGE_VERSION }}
-            docker.io/${{ env.image_name }}:latest
+          dst: ghcr.io/${{ env.image_name }}:${{ env.image_version }}
+      -
+        name: Push latest images to GitHub Container Registry
+        if: github.ref == 'refs/heads/main'
+        uses: akhilerm/tag-push-action@v1.1.0
+        with:
+          src: localhost:5000/${{ env.image_name }}:latest
+          dst: ghcr.io/${{ env.image_name }}:latest
+      -
+        name: Push versioned images to DockerHub
+        if: github.ref == 'refs/heads/main'
+        uses: akhilerm/tag-push-action@v1.1.0
+        with:
+          src: localhost:5000/${{ env.image_name }}:latest
+          dst: docker.io/${{ env.image_name }}:${{ env.image_version }}
+      -
+        name: Push latest images to DockerHub
+        if: github.ref == 'refs/heads/main'
+        uses: akhilerm/tag-push-action@v1.1.0
+        with:
+          src: localhost:5000/${{ env.image_name }}:latest
+          dst: docker.io/${{ env.image_name }}:latest
       -
         name: Set DockerHub description
         if: github.ref == 'refs/heads/main'
