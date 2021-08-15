@@ -43,7 +43,8 @@ jobs:
           echo "image_name=${{ github.repository }}" >> $GITHUB_ENV
           echo "image_created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
           echo "image_version=${{ env.PACKAGE_VERSION }}" >> $GITHUB_ENV
-          echo "image_revision=$(git describe --tags --always --dirty)" >> $GITHUB_ENV
+          echo "image_branch=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+          echo "image_revision=$(git rev-parse --abbrev-ref HEAD)-$(git describe --tags --always --dirty)" >> $GITHUB_ENV
           echo "image_source=${{ github.server_url }}/${{ github.repository }}" >> $GITHUB_ENV
           echo "image_url=${{ github.server_url }}/${{ github.repository }}" >> $GITHUB_ENV
       -
@@ -66,6 +67,9 @@ jobs:
             PACKAGE_VERSION=${{ env.PACKAGE_VERSION }}
           tags: |
             localhost:5000/${{ env.image_name }}:latest
+            localhost:5000/${{ env.image_name }}:${{ env.image_version }}
+            localhost:5000/${{ env.image_name }}:${{ env.image_branch }}
+            localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
           labels: |
             "org.opencontainers.image.authors=${{ env.image_authors }}"
             "org.opencontainers.image.title=${{ env.image_title }}"
@@ -77,30 +81,73 @@ jobs:
           cache-from: |
             type=gha
             type=registry,ref=ghcr.io/${{ env.image_name }}:latest
-            type=registry,ref=ghcr.io/${{ env.image_name }}:${{ env.PACKAGE_VERSION }}
+            type=registry,ref=ghcr.io/${{ env.image_name }}:${{ env.image_version }}
+            type=registry,ref=ghcr.io/${{ env.image_name }}:${{ env.image_branch }}
+            type=registry,ref=ghcr.io/${{ env.image_name }}:${{ env.image_revision }}
             type=registry,ref=docker.io/${{ env.image_name }}:latest
-            type=registry,ref=docker.io/${{ env.image_name }}:${{ env.PACKAGE_VERSION }}
+            type=registry,ref=docker.io/${{ env.image_name }}:${{ env.image_version }}
+            type=registry,ref=docker.io/${{ env.image_name }}:${{ env.image_branch }}
+            type=registry,ref=docker.io/${{ env.image_name }}:${{ env.image_revision }}
           cache-to: |
             type=gha,mode=max
           push: true
       -
-        name: Inspect
+        name: Inspect image manifest
         run: |
-          docker buildx imagetools inspect localhost:5000/${{ env.image_name }}:latest
+          docker buildx imagetools inspect localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
       -
-        name: Test each platform
+        name: Test amd64 image
+        env:
+          PLATFORM: amd64
         run: |
-          for platform in ${PLATFORMS//,/ }
-          do
-            docker pull --platform ${platform} localhost:5000/${{ env.image_name }}:latest
-            docker run --rm -d --name sut ${{ env.image_name }}:latest
-            docker exec sut dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q NOERROR
-            docker exec sut dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q SERVFAIL
-            docker stop sut
-          done
+          docker pull --platform ${{ env.PLATFORM }} localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
+          docker run -d --name sut localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
+          docker exec sut dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q NOERROR || { docker logs sut ; exit 1 ; }
+          docker exec sut dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q SERVFAIL || { docker logs sut ; exit 1 ; }
+          docker logs sut
+          docker rm -f sut
+      -
+        name: Test arm64 image
+        env:
+          PLATFORM: arm64
+        run: |
+          docker pull --platform ${{ env.PLATFORM }} localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
+          docker run -d --name sut localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
+          docker exec sut dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q NOERROR || { docker logs sut ; exit 1 ; }
+          docker exec sut dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q SERVFAIL || { docker logs sut ; exit 1 ; }
+          docker logs sut
+          docker rm -f sut
+      -
+        name: Test armv7 image
+        env:
+          PLATFORM: linux/arm/v7
+        run: |
+          docker pull --platform ${{ env.PLATFORM }} localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
+          docker run -d --name sut localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
+          docker exec sut dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q NOERROR || { docker logs sut ; exit 1 ; }
+          docker exec sut dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q SERVFAIL || { docker logs sut ; exit 1 ; }
+          docker logs sut
+          docker rm -f sut
+      -
+        name: Test armv6 image
+        env:
+          PLATFORM: linux/arm/v6
+        run: |
+          docker pull --platform ${{ env.PLATFORM }} localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
+          docker run -d --name sut localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
+          docker exec sut dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q NOERROR || { docker logs sut ; exit 1 ; }
+          docker exec sut dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q SERVFAIL || { docker logs sut ; exit 1 ; }
+          docker logs sut
+          docker rm -f sut
+      - 
+        name: Check actor permissions
+        uses: actions-cool/check-user-permission@v1.1.0
+        id: checkUser
+        with:
+          require: 'write'
       -
         name: Login to GitHub Container Registry
-        if: github.ref == 'refs/heads/main'
+        if: steps.checkUser.outputs.result == 'true'
         uses: docker/login-action@v1
         with:
           registry: ghcr.io
@@ -108,39 +155,53 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       -
         name: Login to DockerHub
-        if: github.ref == 'refs/heads/main'
+        if: steps.checkUser.outputs.result == 'true'
         uses: docker/login-action@v1 
         with:
           registry: docker.io
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
+        name: Push development images to GitHub Container Registry
+        if: steps.checkUser.outputs.result == 'true'
+        uses: akhilerm/tag-push-action@v1.1.0
+        with:
+          src: localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
+          dst: ghcr.io/${{ env.image_name }}:${{ env.image_revision }}
+      -
+        name: Push development images to DockerHub
+        if: steps.checkUser.outputs.result == 'true'
+        uses: akhilerm/tag-push-action@v1.1.0
+        with:
+          src: localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
+          dst: docker.io/${{ env.image_name }}:${{ env.image_revision }}
+      -
         name: Push versioned images to GitHub Container Registry
         if: github.ref == 'refs/heads/main'
         uses: akhilerm/tag-push-action@v1.1.0
         with:
-          src: localhost:5000/${{ env.image_name }}:latest
+          src: localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
           dst: ghcr.io/${{ env.image_name }}:${{ env.image_version }}
-      -
-        name: Push latest images to GitHub Container Registry
-        if: github.ref == 'refs/heads/main'
-        uses: akhilerm/tag-push-action@v1.1.0
-        with:
-          src: localhost:5000/${{ env.image_name }}:latest
-          dst: ghcr.io/${{ env.image_name }}:latest
       -
         name: Push versioned images to DockerHub
         if: github.ref == 'refs/heads/main'
         uses: akhilerm/tag-push-action@v1.1.0
         with:
-          src: localhost:5000/${{ env.image_name }}:latest
+          src: localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
           dst: docker.io/${{ env.image_name }}:${{ env.image_version }}
+      -
+        name: Push latest images to GitHub Container Registry
+        if: github.ref == 'refs/heads/main'
+        uses: akhilerm/tag-push-action@v1.1.0
+        with:
+          src: localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
+          dst: ghcr.io/${{ env.image_name }}:latest
       -
         name: Push latest images to DockerHub
         if: github.ref == 'refs/heads/main'
         uses: akhilerm/tag-push-action@v1.1.0
         with:
-          src: localhost:5000/${{ env.image_name }}:latest
+          src: localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
           dst: docker.io/${{ env.image_name }}:latest
       -
         name: Set DockerHub description
