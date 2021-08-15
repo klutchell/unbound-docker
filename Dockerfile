@@ -39,6 +39,8 @@ RUN wget -q -O- https://buildroot.org/downloads/buildroot-$BR_VERSION.tar.gz | t
 
 FROM buildroot-base as rootfs
 
+ARG TARGETARCH
+ARG TARGETVARIANT
 ARG PACKAGE_VERSION=1.13.1
 ARG ROOTFS_LIBC=musl
 
@@ -51,7 +53,7 @@ COPY rootfs_overlay ./rootfs_overlay
 
 RUN support/kconfig/merge_config.sh -m \
 	config/common.cfg \
-	config/arch/"$(uname -m)".cfg \
+	config/arch/"${TARGETARCH}${TARGETVARIANT}".cfg \
 	config/libc/"${ROOTFS_LIBC}".cfg \
 	config/unbound.cfg
 
@@ -80,3 +82,5 @@ LABEL org.opencontainers.image.documentation "https://github.com/klutchell/unbou
 LABEL org.opencontainers.image.source "https://github.com/klutchell/unbound-dnscrypt"
 LABEL org.opencontainers.image.title "klutchell/unbound-dnscrypt"
 LABEL org.opencontainers.image.description "Unbound is a validating, recursive, caching DNS resolver"
+
+RUN [ "unbound", "-V" ]
