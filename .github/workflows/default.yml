@@ -8,13 +8,42 @@ env:
 
 jobs:
 
-  docker:
+  set_output:
     runs-on: ubuntu-20.04
-    services:
-      registry:
-        image: registry:2
-        ports:
-          - 5000:5000
+    outputs:
+      image_title: ${{ steps.set.outputs.image_title }}
+      image_authors: ${{ steps.set.outputs.image_authors }}
+      image_name: ${{ steps.set.outputs.image_name }}
+      image_created: ${{ steps.set.outputs.image_created }}
+      image_version: ${{ steps.set.outputs.image_version }}
+      image_branch: ${{ steps.set.outputs.image_branch }}
+      image_revision: ${{ steps.set.outputs.image_revision }}
+      image_source: ${{ steps.set.outputs.image_source }}
+      image_url: ${{ steps.set.outputs.image_url }}
+      image_documentation: ${{ steps.set.outputs.image_documentation }}
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      - 
+        name: Set output
+        id: set
+        run: |
+          echo "::set-output name=image_title::${{ github.repository }}"
+          echo "::set-output name=image_authors::${{ github.repository_owner }}"
+          echo "::set-output name=image_name::${{ github.repository }}"
+          echo "::set-output name=image_created::$(date --iso-8601=seconds)"
+          echo "::set-output name=image_version::${{ env.PACKAGE_VERSION }}"
+          echo "::set-output name=image_branch::$(git rev-parse --abbrev-ref HEAD)"
+          echo "::set-output name=image_revision::${{ github.sha }}"
+          echo "::set-output name=image_source::${{ github.server_url }}/${{ github.repository }}"
+          echo "::set-output name=image_url::${{ github.server_url }}/${{ github.repository }}"
+          echo "::set-output name=image_documentation::${{ github.server_url }}/${{ github.repository }}"
+
+  docker_build:
+    runs-on: ubuntu-20.04
+    needs: set_output
+
     steps:
       - 
         name: Free disk space
@@ -34,20 +63,6 @@ jobs:
       -
         name: Checkout
         uses: actions/checkout@v2
-      - 
-        name: Set vars
-        id: vars
-        run: |
-          echo "image_title=${{ github.repository }}" >> $GITHUB_ENV
-          echo "image_authors=${{ github.repository_owner }}" >> $GITHUB_ENV
-          echo "image_name=${{ github.repository }}" >> $GITHUB_ENV
-          echo "image_created=$(date --iso-8601=seconds)" >> $GITHUB_ENV
-          echo "image_version=${{ env.PACKAGE_VERSION }}" >> $GITHUB_ENV
-          echo "image_branch=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
-          echo "image_revision=$(git rev-parse --abbrev-ref HEAD)-$(git describe --tags --always --dirty)" >> $GITHUB_ENV
-          echo "image_source=${{ github.server_url }}/${{ github.repository }}" >> $GITHUB_ENV
-          echo "image_url=${{ github.server_url }}/${{ github.repository }}" >> $GITHUB_ENV
-          echo "image_documentation=${{ github.server_url }}/${{ github.repository }}" >> $GITHUB_ENV
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -58,7 +73,7 @@ jobs:
         with:
           driver-opts: network=host
       - 
-        name: Build and push to local registry
+        name: Build and output to OCI
         uses: docker/build-push-action@v2
         with:
           context: .
@@ -66,81 +81,91 @@ jobs:
           platforms: ${{ env.PLATFORMS }}
           build-args: |
             PACKAGE_VERSION=${{ env.PACKAGE_VERSION }}
-          tags: |
-            localhost:5000/${{ env.image_name }}:latest
-            localhost:5000/${{ env.image_name }}:${{ env.image_version }}
-            localhost:5000/${{ env.image_name }}:${{ env.image_branch }}
-            localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
           labels: |
-            "org.opencontainers.image.authors=${{ env.image_authors }}"
-            "org.opencontainers.image.title=${{ env.image_title }}"
-            "org.opencontainers.image.created=${{ env.image_created }}"
-            "org.opencontainers.image.version=${{ env.image_version }}"
-            "org.opencontainers.image.revision=${{ env.image_revision }}"
-            "org.opencontainers.image.source=${{ env.image_source }}"
-            "org.opencontainers.image.url=${{ env.image_url }}"
-            "org.opencontainers.image.url=${{ env.image_documentation }}"
+            "org.opencontainers.image.authors=${{ needs.set_output.outputs.image_authors }}"
+            "org.opencontainers.image.title=${{ needs.set_output.outputs.image_title }}"
+            "org.opencontainers.image.created=${{ needs.set_output.outputs.image_created }}"
+            "org.opencontainers.image.version=${{ needs.set_output.outputs.image_version }}"
+            "org.opencontainers.image.revision=${{ needs.set_output.outputs.image_revision }}"
+            "org.opencontainers.image.source=${{ needs.set_output.outputs.image_source }}"
+            "org.opencontainers.image.url=${{ needs.set_output.outputs.image_url }}"
+            "org.opencontainers.image.url=${{ needs.set_output.outputs.image_documentation }}"
           cache-from: |
             type=gha
-            type=registry,ref=ghcr.io/${{ env.image_name }}:latest
-            type=registry,ref=ghcr.io/${{ env.image_name }}:${{ env.image_version }}
-            type=registry,ref=ghcr.io/${{ env.image_name }}:${{ env.image_branch }}
-            type=registry,ref=ghcr.io/${{ env.image_name }}:${{ env.image_revision }}
-            type=registry,ref=docker.io/${{ env.image_name }}:latest
-            type=registry,ref=docker.io/${{ env.image_name }}:${{ env.image_version }}
-            type=registry,ref=docker.io/${{ env.image_name }}:${{ env.image_branch }}
-            type=registry,ref=docker.io/${{ env.image_name }}:${{ env.image_revision }}
+            type=registry,ref=ghcr.io/${{ needs.set_output.outputs.image_name }}:latest
+            type=registry,ref=ghcr.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_version }}
+            type=registry,ref=ghcr.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_branch }}
+            type=registry,ref=ghcr.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_revision }}
+            type=registry,ref=docker.io/${{ needs.set_output.outputs.image_name }}:latest
+            type=registry,ref=docker.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_version }}
+            type=registry,ref=docker.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_branch }}
+            type=registry,ref=docker.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_revision }}
           cache-to: |
             type=gha,mode=max
-          push: true
+          outputs: |
+            type=oci,dest=/tmp/oci.tar
       -
-        name: Inspect image manifest
-        run: |
-          docker buildx imagetools inspect localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
+        name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: oci
+          path: /tmp/oci.tar
+
+  test:
+    runs-on: ubuntu-20.04
+    needs: [set_output, docker_build]
+
+    strategy:
+      matrix:
+        PLATFORM: [linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6]
+
+    steps:
       -
-        name: Test amd64 image
-        env:
-          PLATFORM: amd64
+        name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: oci
+          path: /tmp
+      -
+        name: Set overrides
+        id: set
         run: |
-          docker pull --platform ${{ env.PLATFORM }} localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
-          docker run -d --name sut localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
+          echo "::set-output name=override_os::$(echo ${{ matrix.PLATFORM }} | awk -F '/' '{print $1}')"
+          echo "::set-output name=override_arch::$(echo ${{ matrix.PLATFORM }} | awk -F '/' '{print $2}')"
+          echo "::set-output name=override_variant::$(echo ${{ matrix.PLATFORM }} | awk -F '/' '{print $3}')"
+      -
+        name: Copy from OCI to local Docker daemon
+        run: |
+          echo ""
+          skopeo \
+            --override-os '${{ steps.set.outputs.override_os }}' \
+            --override-arch '${{ steps.set.outputs.override_arch }}' \
+            --override-variant '${{ steps.set.outputs.override_variant }}' \
+            copy "oci-archive:/tmp/oci.tar" "docker-daemon:sut-image:latest"
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      -
+        name: Test ${{ matrix.PLATFORM }}
+        run: |
+          docker run -d --name sut sut-image:latest
           docker exec sut dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q NOERROR || { docker logs sut ; exit 1 ; }
           docker exec sut dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q SERVFAIL || { docker logs sut ; exit 1 ; }
           docker logs sut
           docker rm -f sut
+
+  deploy_branch:
+    runs-on: ubuntu-20.04
+    needs: [set_output, docker_build, test]
+    if: github.ref != 'refs/heads/main'
+
+    steps:
       -
-        name: Test arm64 image
-        env:
-          PLATFORM: arm64
-        run: |
-          docker pull --platform ${{ env.PLATFORM }} localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
-          docker run -d --name sut localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
-          docker exec sut dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q NOERROR || { docker logs sut ; exit 1 ; }
-          docker exec sut dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q SERVFAIL || { docker logs sut ; exit 1 ; }
-          docker logs sut
-          docker rm -f sut
-      -
-        name: Test armv7 image
-        env:
-          PLATFORM: linux/arm/v7
-        run: |
-          docker pull --platform ${{ env.PLATFORM }} localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
-          docker run -d --name sut localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
-          docker exec sut dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q NOERROR || { docker logs sut ; exit 1 ; }
-          docker exec sut dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q SERVFAIL || { docker logs sut ; exit 1 ; }
-          docker logs sut
-          docker rm -f sut
-      -
-        name: Test armv6 image
-        env:
-          PLATFORM: linux/arm/v6
-        run: |
-          docker pull --platform ${{ env.PLATFORM }} localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
-          docker run -d --name sut localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
-          docker exec sut dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q NOERROR || { docker logs sut ; exit 1 ; }
-          docker exec sut dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -q SERVFAIL || { docker logs sut ; exit 1 ; }
-          docker logs sut
-          docker rm -f sut
+        name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: oci
+          path: /tmp
       - 
         name: Check actor permissions
         uses: actions-cool/check-user-permission@v1.1.0
@@ -164,66 +189,71 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
-        name: Push revision images to GitHub Container Registry
+        name: Copy from OCI to DockerHub and GitHub Container Registry
         if: steps.checkUser.outputs.result == 'true'
-        uses: akhilerm/tag-push-action@v1.1.0
-        with:
-          src: localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
-          dst: ghcr.io/${{ env.image_name }}:${{ env.image_revision }}
+        run: |
+          skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://ghcr.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_branch }}"
+          skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://docker.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_branch }}"
       -
-        name: Push revision images to DockerHub
+        name: Inspect image manifests
+        run: |
+          skopeo inspect "docker://ghcr.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_branch }}"
+          skopeo inspect "docker://docker.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_branch }}"
+
+  deploy_release:
+    runs-on: ubuntu-20.04
+    needs: [set_output, docker_build, test]
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      -
+        name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: oci
+          path: /tmp
+      - 
+        name: Check actor permissions
+        uses: actions-cool/check-user-permission@v1.1.0
+        id: checkUser
+        with:
+          require: 'write'
+      -
+        name: Login to GitHub Container Registry
         if: steps.checkUser.outputs.result == 'true'
-        uses: akhilerm/tag-push-action@v1.1.0
+        uses: docker/login-action@v1
         with:
-          src: localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
-          dst: docker.io/${{ env.image_name }}:${{ env.image_revision }}
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       -
-        name: Push branch images to GitHub Container Registry
+        name: Login to DockerHub
         if: steps.checkUser.outputs.result == 'true'
-        uses: akhilerm/tag-push-action@v1.1.0
+        uses: docker/login-action@v1 
         with:
-          src: localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
-          dst: ghcr.io/${{ env.image_name }}:${{ env.image_branch }}
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
-        name: Push branch images to DockerHub
+        name: Copy from OCI to DockerHub and GitHub Container Registry
         if: steps.checkUser.outputs.result == 'true'
-        uses: akhilerm/tag-push-action@v1.1.0
-        with:
-          src: localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
-          dst: docker.io/${{ env.image_name }}:${{ env.image_branch }}
+        run: |
+          skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://ghcr.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_revision }}"
+          skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://ghcr.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_version }}"
+          skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://ghcr.io/${{ needs.set_output.outputs.image_name }}:latest"
+          skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://docker.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_revision }}"
+          skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://docker.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_version }}"
+          skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://docker.io/${{ needs.set_output.outputs.image_name }}:latest"
       -
-        name: Push versioned images to GitHub Container Registry
-        if: github.ref == 'refs/heads/main'
-        uses: akhilerm/tag-push-action@v1.1.0
-        with:
-          src: localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
-          dst: ghcr.io/${{ env.image_name }}:${{ env.image_version }}
-      -
-        name: Push versioned images to DockerHub
-        if: github.ref == 'refs/heads/main'
-        uses: akhilerm/tag-push-action@v1.1.0
-        with:
-          src: localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
-          dst: docker.io/${{ env.image_name }}:${{ env.image_version }}
-      -
-        name: Push latest images to GitHub Container Registry
-        if: github.ref == 'refs/heads/main'
-        uses: akhilerm/tag-push-action@v1.1.0
-        with:
-          src: localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
-          dst: ghcr.io/${{ env.image_name }}:latest
-      -
-        name: Push latest images to DockerHub
-        if: github.ref == 'refs/heads/main'
-        uses: akhilerm/tag-push-action@v1.1.0
-        with:
-          src: localhost:5000/${{ env.image_name }}:${{ env.image_revision }}
-          dst: docker.io/${{ env.image_name }}:latest
+        name: Inspect image manifests
+        run: |
+          skopeo inspect "docker://ghcr.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_revision }}"
+          skopeo inspect "docker://docker.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_revision }}"
       -
         name: Set DockerHub description
-        if: github.ref == 'refs/heads/main'
+        if: steps.checkUser.outputs.result == 'true'
         uses: peter-evans/dockerhub-description@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          repository: ${{ env.image_name }}
+          repository: ${{ needs.set_output.outputs.image_name }}
