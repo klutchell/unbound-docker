@@ -1,7 +1,7 @@
 #syntax=docker/dockerfile:1.2
 
 # hadolint ignore=DL3029
-FROM --platform=$BUILDPLATFORM debian:bullseye-20210329 AS buildroot-base
+FROM --platform=$BUILDPLATFORM debian:bullseye-20210816 AS buildroot-base
 
 # hadolint ignore=DL3008
 RUN apt-get update && \
