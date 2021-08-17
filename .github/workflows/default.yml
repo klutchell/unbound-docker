@@ -172,48 +172,56 @@ jobs:
         name: Check actor permissions
         uses: actions-cool/check-user-permission@v1.1.0
         id: checkUser
-        with:
-          require: 'write'
       -
         name: Login to GitHub Container Registry
-        if: steps.checkUser.outputs.result == 'true'
+        id: ghcr_login
+        if: steps.checkUser.outputs.user-permission == 'admin' || steps.checkUser.outputs.user-permission == 'write'
         uses: docker/login-action@v1
         with:
           registry: ghcr.io
-          username: ${{ github.repository_owner }}
+          username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       -
         name: Login to DockerHub
-        if: steps.checkUser.outputs.result == 'true'
+        id: dhcr_login
+        if: steps.checkUser.outputs.user-permission == 'admin' || steps.checkUser.outputs.user-permission == 'write'
         uses: docker/login-action@v1 
         with:
           registry: docker.io
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
-        name: Push development images to public registries
-        if: steps.checkUser.outputs.result == 'true'
+        name: Push development images to GitHub Container Registry
+        if: steps.ghcr_login.outcome == 'success'
         run: |
           skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://ghcr.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_revision }}"
           skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://ghcr.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_branch }}"
+          skopeo inspect "docker://ghcr.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_revision }}"
+      -
+        name: Push development images to DockerHub
+        if: steps.dhcr_login.outcome == 'success'
+        run: |
           skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://docker.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_revision }}"
           skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://docker.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_branch }}"
+          skopeo inspect "docker://docker.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_revision }}"
       -
-        name: Push release images to public registries
-        if: steps.checkUser.outputs.result == 'true' && github.ref == 'refs/heads/main'
+        name: Push release images to GitHub Container Registry
+        if: steps.ghcr_login.outcome == 'success' && github.ref == 'refs/heads/main'
         run: |
           skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://ghcr.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_version }}"
           skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://ghcr.io/${{ needs.set_output.outputs.image_name }}:latest"
+          skopeo inspect "docker://ghcr.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_version }}"
+      -
+        name: Push release images to DockerHub
+        id: dhcr_release_push
+        if: steps.dhcr_login.outcome == 'success' && github.ref == 'refs/heads/main'
+        run: |
           skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://docker.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_version }}"
           skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://docker.io/${{ needs.set_output.outputs.image_name }}:latest"
-      -
-        name: Inspect image manifests
-        run: |
-          skopeo inspect "docker://ghcr.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_revision }}"
-          skopeo inspect "docker://docker.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_revision }}"
+          skopeo inspect "docker://docker.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_version }}"
       -
         name: Set DockerHub description
-        if: steps.checkUser.outputs.result == 'true' && github.ref == 'refs/heads/main'
+        if: steps.dhcr_release_push.outcome == 'success' && github.ref == 'refs/heads/main'
         uses: peter-evans/dockerhub-description@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
