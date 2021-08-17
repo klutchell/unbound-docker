@@ -111,7 +111,7 @@ jobs:
           name: oci
           path: /tmp/oci.tar
 
-  test:
+  docker_test:
     runs-on: ubuntu-20.04
     needs: [set_output, docker_build]
 
@@ -154,12 +154,14 @@ jobs:
           docker logs sut
           docker rm -f sut
 
-  deploy_branch:
+  docker_push:
     runs-on: ubuntu-20.04
-    needs: [set_output, docker_build, test]
-    if: github.ref != 'refs/heads/main'
+    needs: [set_output, docker_build, docker_test]
 
     steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
       -
         name: Download artifacts
         uses: actions/download-artifact@v2
@@ -189,59 +191,19 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
-        name: Copy from OCI to DockerHub and GitHub Container Registry
-        if: steps.checkUser.outputs.result == 'true'
-        run: |
-          skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://ghcr.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_branch }}"
-          skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://docker.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_branch }}"
-      -
-        name: Inspect image manifests
-        run: |
-          skopeo inspect "docker://ghcr.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_branch }}"
-          skopeo inspect "docker://docker.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_branch }}"
-
-  deploy_release:
-    runs-on: ubuntu-20.04
-    needs: [set_output, docker_build, test]
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-      -
-        name: Download artifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: oci
-          path: /tmp
-      - 
-        name: Check actor permissions
-        uses: actions-cool/check-user-permission@v1.1.0
-        id: checkUser
-        with:
-          require: 'write'
-      -
-        name: Login to GitHub Container Registry
-        if: steps.checkUser.outputs.result == 'true'
-        uses: docker/login-action@v1
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Login to DockerHub
-        if: steps.checkUser.outputs.result == 'true'
-        uses: docker/login-action@v1 
-        with:
-          registry: docker.io
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      -
-        name: Copy from OCI to DockerHub and GitHub Container Registry
+        name: Push development images to public registries
         if: steps.checkUser.outputs.result == 'true'
         run: |
           skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://ghcr.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_revision }}"
+          skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://ghcr.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_branch }}"
+          skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://docker.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_revision }}"
+          skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://docker.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_branch }}"
+      -
+        name: Push release images to public registries
+        if: steps.checkUser.outputs.result == 'true' && github.ref == 'refs/heads/main'
+        run: |
           skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://ghcr.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_version }}"
           skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://ghcr.io/${{ needs.set_output.outputs.image_name }}:latest"
-          skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://docker.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_revision }}"
           skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://docker.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_version }}"
           skopeo copy --format v2s2 --all "oci-archive:/tmp/oci.tar" "docker://docker.io/${{ needs.set_output.outputs.image_name }}:latest"
       -
@@ -251,7 +213,7 @@ jobs:
           skopeo inspect "docker://docker.io/${{ needs.set_output.outputs.image_name }}:${{ needs.set_output.outputs.image_revision }}"
       -
         name: Set DockerHub description
-        if: steps.checkUser.outputs.result == 'true'
+        if: steps.checkUser.outputs.result == 'true' && github.ref == 'refs/heads/main'
         uses: peter-evans/dockerhub-description@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
