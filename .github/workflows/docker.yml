@@ -2,8 +2,6 @@ name: docker
 
 on:
   push:
-    branches:
-      - "main"
     tags:
       - "v*"
   pull_request:
@@ -17,30 +15,8 @@ env:
 
 jobs:
 
-  revbot:
-    runs-on: ubuntu-20.04
-
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-
-      - id: revbot
-        run: |
-          for i in {0..100} ; do \
-            new_tag="v${{ env.version }}+rev${i}" ; \
-            git show-ref --tags ${new_tag} --quiet || break ; \
-          done
-          echo "::set-output name=new_tag::${new_tag}"
-
-      - uses: rickstaa/action-create-tag@v1
-        if: github.event_name != 'pull_request'
-        with:
-          tag: "${{ steps.revbot.outputs.new_tag }}"
-
   docker-meta:
     runs-on: ubuntu-20.04
-    needs: revbot
 
     outputs:
       tags: ${{ steps.meta.outputs.tags }}
