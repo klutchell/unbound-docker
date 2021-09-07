@@ -1,0 +1,25 @@
+name: revbot
+
+on:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  revbot:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - id: revbot
+        run: |
+          for i in [0..100] ; do \
+            new_tag="v${{ env.PACKAGE_VERSION }}+rev${i}" ; \
+            git show-ref --tags ${new_tag} --quiet || break ; \
+          done
+          echo "::set-output name=new_tag::${new_tag}"
+
+      - uses: rickstaa/action-create-tag@v1
+        with:
+          tag: "${{ steps.revbot.outputs.new_tag }}"
