@@ -14,7 +14,7 @@ jobs:
 
       - id: revbot
         run: |
-          for i in [0..100] ; do \
+          for i in {0..100} ; do \
             new_tag="v${{ env.PACKAGE_VERSION }}+rev${i}" ; \
             git show-ref --tags ${new_tag} --quiet || break ; \
           done
