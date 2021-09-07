@@ -65,6 +65,8 @@ jobs:
         with:
           driver-opts: network=host
 
+      - uses: actions/checkout@v2
+
       - uses: docker/build-push-action@v2
         with:
           platforms: ${{ env.platforms }}
