@@ -27,11 +27,7 @@ jobs:
           done
           echo "::set-output name=new_tag::${new_tag}"
 
-      # - uses: rickstaa/action-create-tag@v1
-      #   with:
-      #     tag: "${{ steps.revbot.outputs.new_tag }}"
-
       - uses: tvdias/github-tagger@v0.0.2
         with:
-          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          repo-token: "${{ secrets.REVBOT_TOKEN }}"
           tag: "${{ steps.revbot.outputs.new_tag }}"
