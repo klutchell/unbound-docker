@@ -3,24 +3,12 @@ updates:
 - package-ecosystem: github-actions
   directory: "/"
   schedule:
-    interval: daily
-  open-pull-requests-limit: 10
+    interval: weekly
   commit-message:
     prefix: patch
-  rebase-strategy: auto
-# - package-ecosystem: npm
-#   directory: "/"
-#   schedule:
-#     interval: daily
-#   open-pull-requests-limit: 10
-#   commit-message:
-#     prefix: patch
-#   rebase-strategy: auto
 - package-ecosystem: docker
   directory: "/"
   schedule:
-    interval: daily
-  open-pull-requests-limit: 10
+    interval: weekly
   commit-message:
     prefix: patch
-  rebase-strategy: auto

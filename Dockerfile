@@ -41,11 +41,7 @@ FROM buildroot-base as rootfs
 
 ARG TARGETARCH
 ARG TARGETVARIANT
-ARG PACKAGE_VERSION=1.13.1
 ARG ROOTFS_LIBC=musl
-
-# check the expected unbound version matches the one included with this buildroot version
-RUN grep -qw "${PACKAGE_VERSION}" ./package/unbound/unbound.mk
 
 COPY config ./config
 
@@ -75,12 +71,5 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
 	CMD [ "dig", "sigok.verteiltesysteme.net", "@127.0.0.1" ]
 
 ENTRYPOINT [ "unbound" ]
-
-LABEL org.opencontainers.image.authors "Kyle Harding <https://klutchell.dev>"
-LABEL org.opencontainers.image.url "https://github.com/klutchell/unbound-dnscrypt"
-LABEL org.opencontainers.image.documentation "https://github.com/klutchell/unbound-dnscrypt"
-LABEL org.opencontainers.image.source "https://github.com/klutchell/unbound-dnscrypt"
-LABEL org.opencontainers.image.title "klutchell/unbound-dnscrypt"
-LABEL org.opencontainers.image.description "Unbound is a validating, recursive, caching DNS resolver"
 
 RUN [ "unbound", "-V" ]
