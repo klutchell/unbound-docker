@@ -5,6 +5,9 @@ on:
     branches:
       - "main"
 
+env:
+  version: "1.13.1"
+
 jobs:
   revbot:
     runs-on: ubuntu-20.04
@@ -15,7 +18,7 @@ jobs:
       - id: revbot
         run: |
           for i in {0..100} ; do \
-            new_tag="v${{ env.PACKAGE_VERSION }}+rev${i}" ; \
+            new_tag="v${{ env.version }}+rev${i}" ; \
             git show-ref --tags ${new_tag} --quiet || break ; \
           done
           echo "::set-output name=new_tag::${new_tag}"
