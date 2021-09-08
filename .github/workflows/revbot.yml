@@ -1,4 +1,4 @@
-name: docker
+name: revbot
 
 on:
   push:
@@ -27,6 +27,8 @@ jobs:
           done
           echo "::set-output name=new_tag::${new_tag}"
 
+      # REVBOT_TOKEN requires 'repo' access.
+      # Don't use GITHUB_TOKEN if you want this commit to trigger other workflows.
       - uses: tvdias/github-tagger@v0.0.2
         with:
           repo-token: "${{ secrets.REVBOT_TOKEN }}"
