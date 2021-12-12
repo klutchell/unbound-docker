@@ -31,7 +31,7 @@ WORKDIR /home/br-user
 
 ENV LC_ALL=en_US.UTF-8
 
-ARG BR_VERSION=2021.02.4
+ARG BR_VERSION=2021.11
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
