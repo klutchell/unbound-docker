@@ -67,9 +67,4 @@ FROM scratch
 
 COPY --from=rootfs rootfs/ /
 
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-	CMD [ "dig", "sigok.verteiltesysteme.net", "@127.0.0.1" ]
-
 ENTRYPOINT [ "unbound" ]
-
-RUN [ "unbound", "-V" ]
