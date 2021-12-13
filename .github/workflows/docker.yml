@@ -1,17 +1,16 @@
 name: docker
 
 on:
-  push:
-    tags:
-      - "v*"
   pull_request:
+    types: [opened, synchronize, closed]
     branches:
-      - "main"
+      - main
 
 env:
+  repository: "klutchell/unbound"
   platforms: "linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6"
-  images: "docker.io/${{ github.repository }},ghcr.io/${{ github.repository }}"
-  local_tag: localhost:5000/${{ github.repository }}:latest
+  images: "docker.io/klutchell/unbound,ghcr.io/klutchell/unbound"
+  local_tag: localhost:5000/klutchell/unbound:latest
 
 jobs:
 
@@ -52,8 +51,8 @@ jobs:
           cache-from: |
             type=gha
             ${{ steps.meta.outputs.tags }}
-            docker.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:latest
+            docker.io/${{ env.repository }}:latest
+            ghcr.io/${{ env.repository }}:latest
           push: true
 
       - name: Test functionality
@@ -70,29 +69,29 @@ jobs:
           done
 
       - uses: docker/login-action@v1
-        continue-on-error: ${{ github.event_name == 'pull_request' }}
+        if: github.actor == github.repository_owner
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: docker/login-action@v1
-        continue-on-error: ${{ github.event_name == 'pull_request' }}
+        if: github.actor == github.repository_owner
         with:
           registry: docker.io
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - uses: akhilerm/tag-push-action@v2.0.0
-        continue-on-error: ${{ github.event_name == 'pull_request' }}
+        if: github.actor == github.repository_owner
         with:
           src: ${{ env.local_tag }}
           dst: |
             ${{ steps.meta.outputs.tags }}
 
       - uses: peter-evans/dockerhub-description@v2
-        if: github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main'
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          repository: ${{ github.repository }}
+          repository: ${{ env.repository }}
