@@ -37,8 +37,6 @@ jobs:
             type=ref,event=pr
             type=sha
 
-      - uses: docker/setup-qemu-action@v1
-
       - uses: docker/setup-buildx-action@v1
         with:
           driver-opts: network=host
@@ -55,6 +53,8 @@ jobs:
             docker.io/${{ env.slug }}:latest
             ghcr.io/${{ env.slug }}:latest
           push: true
+
+      - uses: docker/setup-qemu-action@v1
 
       - name: Test functionality
         run: |
