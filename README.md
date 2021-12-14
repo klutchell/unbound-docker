@@ -5,56 +5,6 @@
 
 [Unbound](https://unbound.net/) is a validating, recursive, and caching DNS resolver.
 
-## Architectures
-
-The architectures supported by this image are:
-
-- `linux/amd64`
-- `linux/arm64`
-- `linux/arm/v7`
-- `linux/arm/v6`
-
-Simply pulling `klutchell/unbound:1.14.0` should retrieve the correct image for your arch.
-
-## Build
-
-```bash
-# optionally update root hints before building
-rm rootfs_overlay/etc/unbound/root.hints
-wget https://www.internic.net/domain/named.root -O rootfs_overlay/etc/unbound/root.hints
-```
-
-```bash
-# enable docker buildkit and experimental mode
-export DOCKER_BUILDKIT=1
-export DOCKER_CLI_EXPERIMENTAL=enabled
-
-# build local image for native platform
-docker buildx build . --pull --tag klutchell/unbound --load
-
-# cross-build for another platform
-docker buildx build . --pull --tag klutchell/unbound --load --platform linux/arm/v6
-```
-
-## Test
-
-```bash
-# enable QEMU for arm emulation
-docker run --rm --privileged multiarch/qemu-user-static:5.2.0-2 --reset -p yes
-
-# run a detached unbound container
-docker run --rm -d --name unbound klutchell/unbound:1.14.0
-
-# run dig with dnssec to test an example NOERROR endpoint
-docker exec unbound dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec
-
-# run dig with dnssec to test an example SERVFAIL endpoint
-docker exec unbound dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec
-
-# stop and remove the container
-docker stop unbound
-```
-
 ## Usage
 
 NLnet Labs documentation: <https://unbound.docs.nlnetlabs.nl/en/latest/>
@@ -102,7 +52,7 @@ documentation and mounting your own config directory.
 Use unbound as upstream DNS for [Pi-Hole](https://pi-hole.net/).
 
 ```yaml
-version: '2'
+version: "2"
 
 volumes:
   pihole:
@@ -114,20 +64,59 @@ services:
     cap_add:
       - NET_ADMIN
     volumes:
-      - 'pihole:/etc/pihole'
-      - 'dnsmasq:/etc/dnsmasq.d'
+      - "pihole:/etc/pihole"
+      - "dnsmasq:/etc/dnsmasq.d"
     dns:
-      - '127.0.0.1'
-      - '1.1.1.1'
+      - "127.0.0.1"
+      - "1.1.1.1"
     network_mode: host
     environment:
-      - 'DNS1=127.0.0.1#5053'
-      - 'DNS2=127.0.0.1#5053'
+      - "DNS1=127.0.0.1#5053"
+      - "DNS2=127.0.0.1#5053"
   unbound:
     image: klutchell/unbound:1.14.0
     ports:
-      - '5053:53/tcp'
-      - '5053:53/udp'
+      - "5053:53/tcp"
+      - "5053:53/udp"
+```
+
+## Build
+
+```bash
+# optionally update root hints before building
+rm rootfs_overlay/etc/unbound/root.hints
+wget https://www.internic.net/domain/named.root -O rootfs_overlay/etc/unbound/root.hints
+```
+
+```bash
+# enable docker buildkit and experimental mode
+export DOCKER_BUILDKIT=1
+export DOCKER_CLI_EXPERIMENTAL=enabled
+
+# build local image for native platform
+docker build . --pull --tag klutchell/unbound --load
+
+# cross-build for another platform
+docker build . --pull --tag klutchell/unbound --load --platform linux/arm/v6
+```
+
+## Test
+
+```bash
+# enable QEMU for arm emulation
+docker run --rm --privileged multiarch/qemu-user-static:5.2.0-2 --reset -p yes
+
+# run a detached unbound container
+docker run --rm -d --name unbound klutchell/unbound:1.14.0
+
+# run dig with dnssec to test an example NOERROR endpoint
+docker exec unbound dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec
+
+# run dig with dnssec to test an example SERVFAIL endpoint
+docker exec unbound dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec
+
+# stop and remove the container
+docker stop unbound
 ```
 
 ## Contributing
