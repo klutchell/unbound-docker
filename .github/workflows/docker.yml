@@ -61,14 +61,13 @@ jobs:
       - name: Test functionality
         run: |
           for platform in $(tr ',' '\n' <<< "${{ env.platforms }}") ; do
-            docker pull --platform ${platform} ${{ env.local_tag }}
-            docker run --rm ${{ env.local_tag }} -V | tee /dev/stderr | grep -wq "$(head -n1 VERSION)"
-            docker run -d --name sut ${{ env.local_tag }}
-            sleep 5
-            docker exec sut dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -wq NOERROR || { docker logs sut ; exit 1 ; }
-            docker exec sut dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -wq SERVFAIL || { docker logs sut ; exit 1 ; }
-            docker logs sut
-            docker rm -f sut
+            export IMAGE=${{ env.local_tag }} 
+            export PLATFORM="${platform}"
+            docker-compose pull
+            docker-compose up version | tee /dev/stderr | grep -wq "$(head -n1 VERSION)"
+            docker-compose up sigok | tee /dev/stderr | grep -wq NOERROR || { docker-compose logs ; exit 1 ; }
+            docker-compose up sigfail | tee /dev/stderr | grep -wq SERVFAIL || { docker-compose logs ; exit 1 ; }
+            docker-compose down --rmi all
           done
 
       - uses: docker/login-action@v1
