@@ -1,0 +1,33 @@
+version: "2"
+
+services:
+  unbound:
+    image: "${IMAGE:-klutchell/unbound}"
+    platform: "${PLATFORM:-linux/amd64}"
+    ports:
+      - "5053:53/tcp"
+      - "5053:53/udp"
+    command: -v -v -v
+
+  sigok:
+    image: "${IMAGE:-klutchell/unbound}"
+    platform: "${PLATFORM:-linux/amd64}"
+    depends_on:
+      - unbound
+    entrypoint: dig
+    command: -p 5053 sigok.verteiltesysteme.net @127.0.0.1 +dnssec
+    network_mode: host
+
+  sigfail:
+    image: "${IMAGE:-klutchell/unbound}"
+    platform: "${PLATFORM:-linux/amd64}"
+    depends_on:
+      - unbound
+    entrypoint: dig
+    command: -p 5053 sigfail.verteiltesysteme.net @127.0.0.1 +dnssec
+    network_mode: host
+
+  version:
+    image: "${IMAGE:-klutchell/unbound}"
+    platform: "${PLATFORM:-linux/amd64}"
+    command: -V

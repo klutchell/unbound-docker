@@ -10,8 +10,13 @@
 NLnet Labs documentation: <https://unbound.docs.nlnetlabs.nl/en/latest/>
 
 ```bash
+# print version information
+docker run --rm klutchell/unbound -V
+```
+
+```bash
 # print general usage
-docker run --rm klutchell/unbound:1.14.0 -h
+docker run --rm klutchell/unbound -h
 ```
 
 ```bash
@@ -19,26 +24,27 @@ docker run --rm klutchell/unbound:1.14.0 -h
 docker run --name unbound \
   -p 53:53/tcp \
   -p 53:53/udp \
-  klutchell/unbound:1.14.0
+  klutchell/unbound
 ```
 
 ```bash
 # mount existing configuration from a host directory
+# examples can be downloaded from root_overlay/etc/unbound
 docker run --name unbound \
   -p 53:53/tcp \
   -p 53:53/udp \
-  -v unbound:/etc/unbound \
-  klutchell/unbound:1.14.0
+  -v /path/to/config:/etc/unbound \
+  klutchell/unbound
 ```
 
 ```bash
 # add a regular healthcheck to test dns resolution
 docker run --name unbound \
-  -p 53:5053/tcp \
-  -p 53:5053/udp \
+  -p 53:53/tcp \
+  -p 53:53/udp \
   -v /path/to/config:/etc/unbound \
   --health-cmd "dig sigok.verteiltesysteme.net @127.0.0.1" \
-  klutchell/unbound:1.14.0
+  klutchell/unbound
 ```
 
 The provided `unbound.conf` will provide recursive DNS with DNSSEC validation.
@@ -60,24 +66,39 @@ volumes:
 
 services:
   pihole:
-    image: pihole/pihole
-    cap_add:
-      - NET_ADMIN
+    container_name: pihole
+    image: pihole/pihole:latest
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "67:67/udp"
+      - "80:80/tcp"
+    networks:
+      default:
+        ipv4_address: 172.28.0.3
+    environment:
+      TZ: "America/Chicago"
+      PIHOLE_DNS: "172.28.0.2;172.28.0.2"
     volumes:
       - "pihole:/etc/pihole"
       - "dnsmasq:/etc/dnsmasq.d"
-    dns:
-      - "127.0.0.1"
-      - "1.1.1.1"
-    network_mode: host
-    environment:
-      - "DNS1=127.0.0.1#5053"
-      - "DNS2=127.0.0.1#5053"
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
+
   unbound:
-    image: klutchell/unbound:1.14.0
-    ports:
-      - "5053:53/tcp"
-      - "5053:53/udp"
+    image: klutchell/unbound
+    networks:
+      default:
+        ipv4_address: 172.28.0.2
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 172.28.0.0/24
+        gateway: 172.28.0.1
 ```
 
 ## Build
@@ -107,7 +128,7 @@ docker build . --pull --tag klutchell/unbound --load --platform linux/arm/v6
 docker run --rm --privileged multiarch/qemu-user-static:5.2.0-2 --reset -p yes
 
 # run a detached unbound container
-docker run --rm -d --name unbound klutchell/unbound:1.14.0
+docker run --rm -d --name unbound klutchell/unbound
 
 # run dig with dnssec to test an example NOERROR endpoint
 docker exec unbound dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec
