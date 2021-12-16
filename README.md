@@ -22,8 +22,8 @@ docker run --rm klutchell/unbound -h
 ```bash
 # run a recursive dns server on host port 53
 docker run --name unbound \
-  -p 53:53/tcp \
-  -p 53:53/udp \
+  -p 53:5053/tcp \
+  -p 53:5053/udp \
   klutchell/unbound
 ```
 
@@ -31,8 +31,8 @@ docker run --name unbound \
 # mount existing configuration from a host directory
 # examples can be downloaded from root_overlay/etc/unbound
 docker run --name unbound \
-  -p 53:53/tcp \
-  -p 53:53/udp \
+  -p 53:5053/tcp \
+  -p 53:5053/udp \
   -v /path/to/config:/etc/unbound \
   klutchell/unbound
 ```
@@ -40,8 +40,8 @@ docker run --name unbound \
 ```bash
 # add a regular healthcheck to test dns resolution
 docker run --name unbound \
-  -p 53:53/tcp \
-  -p 53:53/udp \
+  -p 53:5053/tcp \
+  -p 53:5053/udp \
   -v /path/to/config:/etc/unbound \
   --health-cmd "dig sigok.verteiltesysteme.net @127.0.0.1" \
   klutchell/unbound
@@ -69,8 +69,8 @@ services:
     container_name: pihole
     image: pihole/pihole:latest
     ports:
-      - "53:53/tcp"
-      - "53:53/udp"
+      - "53:5053/tcp"
+      - "53:5053/udp"
       - "67:67/udp"
       - "80:80/tcp"
     networks:

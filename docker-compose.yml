@@ -5,8 +5,8 @@ services:
     image: "${IMAGE:-klutchell/unbound}"
     platform: "${PLATFORM:-linux/amd64}"
     ports:
-      - "5053:53/tcp"
-      - "5053:53/udp"
+      - "5053:5053/tcp"
+      - "5053:5053/udp"
     command: -v -v -v
 
   sigok:
