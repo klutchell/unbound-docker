@@ -44,7 +44,7 @@ WORKDIR /home/br-user/buildroot
 
 ARG TARGETARCH
 ARG TARGETVARIANT
-ARG ROOTFS_LIBC=musl
+ARG ROOTFS_LIBC=glibc
 
 COPY *.patch ./
 
