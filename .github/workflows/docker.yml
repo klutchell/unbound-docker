@@ -9,20 +9,20 @@ on:
       - "main"
 
 env:
-  slug: "klutchell/unbound"
   platforms: "linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6"
-  images: "docker.io/klutchell/unbound,ghcr.io/klutchell/unbound"
-  local_tag: localhost:5000/klutchell/unbound:latest
+  dhcr_repo: klutchell/unbound
+  ghcr_repo: klutchell/unbound
 
 jobs:
-  build:
+  meta:
     runs-on: ubuntu-20.04
 
-    services:
-      registry:
-        image: registry:2.7.1
-        ports:
-          - 5000:5000
+    outputs:
+      json: ${{ steps.meta.outputs.json }}
+      tags: ${{ steps.meta.outputs.tags }}
+      labels: ${{ steps.meta.outputs.labels }}
+      version: ${{ steps.meta.outputs.version }}
+      platforms: ${{ steps.array.outputs.build }}
 
     steps:
       - uses: actions/checkout@v2
@@ -30,12 +30,28 @@ jobs:
       - id: meta
         uses: docker/metadata-action@v3
         with:
-          images: ${{ env.images }}
+          images: docker.io/${{ env.dhcr_repo }},ghcr.io/${{ env.ghcr_repo }}
           tags: |
             type=ref,event=tag
             type=ref,event=branch
             type=ref,event=pr
             type=sha
+
+      - id: array
+        uses: kanga333/json-array-builder@v0.1.0
+        with:
+          str: ${{ env.platforms }}
+          separator: ","
+
+  build:
+    runs-on: ubuntu-20.04
+    needs: meta
+
+    env:
+      archive: "oci-image.tar"
+
+    steps:
+      - uses: actions/checkout@v2
 
       - uses: docker/setup-buildx-action@v1
         with:
@@ -45,53 +61,110 @@ jobs:
         with:
           platforms: ${{ env.platforms }}
           labels: ${{ steps.meta.outputs.labels }}
-          tags: ${{ env.local_tag }}
+          tags: ${{ needs.meta.outputs.tags }}
           cache-to: type=gha,mode=max
           cache-from: |
             type=gha
             ${{ steps.meta.outputs.tags }}
-            docker.io/${{ env.slug }}:latest
-            ghcr.io/${{ env.slug }}:latest
-          push: true
+          outputs: type=oci,dest=${{ env.archive }}
 
+      - uses: actions/upload-artifact@v2
+        with:
+          name: oci-archive
+          path: ${{ env.archive }}
+          retention-days: 1
+
+  test:
+    runs-on: ubuntu-20.04
+    needs: [meta, build]
+
+    strategy:
+      matrix:
+        tag: ${{ fromJson(needs.meta.outputs.json).tags }}
+        platform: ${{ fromJson(needs.meta.outputs.platforms) }}
+
+    env:
+      archive: "oci-image.tar"
+
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: oci-archive
+          path: ./
+
+      - id: ref
+        run: echo "::set-output name=string::$(echo ${{ matrix.tag }} | awk -F ":" '{print $NF}')"
+
+      - name: Load image
+        run: |
+          skopeo --debug \
+            --override-os "$(echo ${{ matrix.platform }} | awk -F '/' '{print $1}')" \
+            --override-arch "$(echo ${{ matrix.platform }} | awk -F '/' '{print $2}')" \
+            --override-variant "$(echo ${{ matrix.platform }} | awk -F '/' '{print $3}')" \
+            copy "oci-archive:${{ env.archive }}:${{ steps.ref.outputs.string }}" "docker-daemon:${{ env.ghcr_repo }}:${{ steps.ref.outputs.string }}"
+
+      # QEMU is required for emulation
       - uses: docker/setup-qemu-action@v1
 
-      - name: Test functionality
+      # VERSION is required in project root
+      - uses: actions/checkout@v2
+
+      - name: Run tests
         run: |
-          for platform in $(tr ',' '\n' <<< "${{ env.platforms }}") ; do
-            export IMAGE=${{ env.local_tag }} 
-            export PLATFORM="${platform}"
-            docker-compose pull
-            docker-compose up version | tee /dev/stderr | grep -wq "$(head -n1 VERSION)"
-            docker-compose up sigok | tee /dev/stderr | grep -wq NOERROR || { docker-compose logs ; exit 1 ; }
-            docker-compose up sigfail | tee /dev/stderr | grep -wq SERVFAIL || { docker-compose logs ; exit 1 ; }
-            docker-compose down --rmi all
-          done
+          docker run -d --name sut ${{ env.ghcr_repo }}:${{ steps.ref.outputs.string }}
+          docker exec sut unbound -V | tee /dev/stderr | grep -wq "$(head -n1 VERSION)" || { docker logs sut ; exit 1 ; }
+          docker exec sut dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -wq NOERROR || { docker logs sut ; exit 1 ; }
+          docker exec sut dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -wq SERVFAIL || { docker logs sut ; exit 1 ; }
+          docker logs sut
+          docker rm -f sut
+
+  deploy:
+    runs-on: ubuntu-20.04
+    needs: [meta, build, test]
+    if: github.actor == github.repository_owner
+
+    env:
+      archive: "oci-image.tar"
+
+    strategy:
+      matrix:
+        tag: ${{ fromJson(needs.meta.outputs.json).tags }}
+
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: oci-archive
+          path: ./
 
       - uses: docker/login-action@v1
-        if: github.actor == github.repository_owner
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: docker/login-action@v1
-        if: github.actor == github.repository_owner
         with:
           registry: docker.io
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - uses: akhilerm/tag-push-action@v2.0.0
-        if: github.actor == github.repository_owner
-        with:
-          src: ${{ env.local_tag }}
-          dst: |
-            ${{ steps.meta.outputs.tags }}
+      - id: ref
+        run: echo "::set-output name=string::$(echo ${{ matrix.tag }} | awk -F ":" '{print $NF}')"
+
+      - name: Push manifest
+        run: skopeo --debug copy --all --format v2s2 "oci-archive:${{ env.archive }}:${{ steps.ref.outputs.string }}" "docker://${{ matrix.tag }}"
+
+  description:
+    runs-on: ubuntu-20.04
+    needs: [meta, deploy]
+    if: github.actor == github.repository_owner
+
+    steps:
+      - uses: actions/checkout@v2
 
       - uses: peter-evans/dockerhub-description@v2
-        if: github.event_name != 'pull_request'
+        if: ${{ contains(needs.meta.outputs.tags, ':latest') }}
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          repository: ${{ env.slug }}
+          repository: ${{ env.dhcr_repo }}
