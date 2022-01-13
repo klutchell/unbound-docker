@@ -6,10 +6,8 @@ on:
       - "main"
 
 jobs:
-
   revbot:
     runs-on: ubuntu-20.04
-    if: github.event_name != 'pull_request'
 
     steps:
       - uses: actions/checkout@v2
@@ -17,12 +15,7 @@ jobs:
           fetch-depth: 0
 
       - id: revbot
-        run: |
-          for i in {0..100} ; do \
-            new_tag="v$(head -n1 VERSION)-r${i}" ; \
-            git show-ref --tags ${new_tag} --quiet || break ; \
-          done
-          echo "::set-output name=new_tag::${new_tag}"
+        run: echo "::set-output name=new_tag::v$(head -n1 VERSION)-$(date +%Y%m%d)"
 
       # REVBOT_TOKEN requires 'repo' access.
       # Don't use GITHUB_TOKEN if you want this commit to trigger other workflows.
