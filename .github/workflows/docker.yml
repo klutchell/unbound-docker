@@ -49,8 +49,6 @@ jobs:
           cache-from: |
             type=gha
             ${{ steps.meta.outputs.tags }}
-            docker.io/${{ env.slug }}:latest
-            ghcr.io/${{ env.slug }}:latest
           push: true
 
       - uses: docker/setup-qemu-action@v1
