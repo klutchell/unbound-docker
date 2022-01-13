@@ -3,7 +3,7 @@ name: docker
 on:
   push:
     tags:
-      - "v*"
+      - "*"
   pull_request:
     branches:
       - "main"
@@ -34,7 +34,7 @@ jobs:
             type=ref,event=branch
             type=ref,event=pr
             type=sha
-            type=match,pattern=v?(\d\.\d\.\d)-\d+,group=1
+            type=match,pattern=(\d+.\d+.\d+)-\d+,group=1
 
       - uses: docker/setup-buildx-action@v1
         with:
