@@ -11,8 +11,6 @@ on:
 env:
   slug: "klutchell/unbound"
   platforms: "linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6"
-  images: "docker.io/klutchell/unbound,ghcr.io/klutchell/unbound"
-  local_tag: localhost:5000/klutchell/unbound:latest
 
 jobs:
   build:
@@ -30,7 +28,7 @@ jobs:
       - id: meta
         uses: docker/metadata-action@v3
         with:
-          images: ${{ env.images }}
+          images: docker.io/${{ env.slug }},ghcr.io/${{ env.slug }}
           tags: |
             type=ref,event=tag
             type=ref,event=branch
@@ -46,7 +44,7 @@ jobs:
         with:
           platforms: ${{ env.platforms }}
           labels: ${{ steps.meta.outputs.labels }}
-          tags: ${{ env.local_tag }}
+          tags: localhost:5000/${{ env.slug }}:local
           cache-to: type=gha,mode=max
           cache-from: |
             type=gha
@@ -60,8 +58,8 @@ jobs:
       - name: Run tests
         run: |
           for platform in $(tr ',' '\n' <<< "${{ env.platforms }}") ; do
-            docker pull --platform ${platform} ${{ env.local_tag }}
-            docker run -d --name sut ${{ env.local_tag }}
+            docker pull --platform ${platform} localhost:5000/${{ env.slug }}:local
+            docker run -d --name sut localhost:5000/${{ env.slug }}:local
             docker exec sut unbound -V | tee /dev/stderr | grep -wq "$(head -n1 VERSION)" || { docker logs sut ; exit 1 ; }
             docker exec sut dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -wq NOERROR || { docker logs sut ; exit 1 ; }
             docker exec sut dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -wq SERVFAIL || { docker logs sut ; exit 1 ; }
@@ -86,7 +84,7 @@ jobs:
       - uses: akhilerm/tag-push-action@v2.0.0
         if: github.actor == github.repository_owner
         with:
-          src: ${{ env.local_tag }}
+          src: localhost:5000/${{ env.slug }}:local
           dst: |
             ${{ steps.meta.outputs.tags }}
 
