@@ -115,10 +115,10 @@ export DOCKER_BUILDKIT=1
 export DOCKER_CLI_EXPERIMENTAL=enabled
 
 # build local image for native platform
-docker build . --pull --tag klutchell/unbound --load
+docker build . --tag klutchell/unbound
 
 # cross-build for another platform
-docker build . --pull --tag klutchell/unbound --load --platform linux/arm/v6
+docker build . --tag klutchell/unbound --platform linux/arm/v6
 ```
 
 ## Test
