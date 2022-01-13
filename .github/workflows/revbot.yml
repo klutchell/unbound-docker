@@ -19,7 +19,8 @@ jobs:
 
       # REVBOT_TOKEN requires 'repo' access.
       # Don't use GITHUB_TOKEN if you want this commit to trigger other workflows.
-      - uses: tvdias/github-tagger@v0.0.2
+      - uses: richardsimko/update-tag@v1
         with:
-          repo-token: "${{ secrets.REVBOT_TOKEN }}"
-          tag: "${{ steps.revbot.outputs.new_tag }}"
+          tag_name: ${{ steps.revbot.outputs.new_tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.REVBOT_TOKEN }}
