@@ -1,5 +1,6 @@
 #syntax=docker/dockerfile:1.2
 
+# set by buildkit (DOCKER_BUILDKIT=1)
 # hadolint ignore=DL3029
 FROM --platform=$BUILDPLATFORM debian:bullseye-20211220-slim AS buildroot-base
 
@@ -42,8 +43,11 @@ FROM buildroot-base as rootfs
 
 WORKDIR /home/br-user/buildroot
 
+# set by buildkit (DOCKER_BUILDKIT=1)
 ARG TARGETARCH
 ARG TARGETVARIANT
+
+# musl or glibc (musl is smaller)
 ARG ROOTFS_LIBC=musl
 
 COPY *.patch ./
@@ -53,12 +57,9 @@ RUN git apply ./*.patch
 COPY config ./config
 
 RUN support/kconfig/merge_config.sh -m \
-	config/common.cfg \
 	config/arch/"${TARGETARCH}${TARGETVARIANT}".cfg \
 	config/libc/"${ROOTFS_LIBC}".cfg \
-	config/unbound.cfg
-
-COPY rootfs_overlay ./rootfs_overlay
+	config/*.cfg
 
 RUN --mount=type=cache,target=/cache,uid=1000,gid=1000,sharing=private \
     make olddefconfig && make source && make
@@ -73,5 +74,7 @@ RUN tar xpf /home/br-user/buildroot/output/images/rootfs.tar -C /rootfs
 FROM scratch
 
 COPY --from=rootfs rootfs/ /
+
+COPY --chown=unbound:unbound rootfs_overlay/ /
 
 ENTRYPOINT [ "unbound" ]

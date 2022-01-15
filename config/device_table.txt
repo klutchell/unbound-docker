@@ -1,2 +1,0 @@
-/etc/unbound d 750 unbound unbound - - - - -
-/etc/unbound/root.key f 750 unbound unbound - - - - -
