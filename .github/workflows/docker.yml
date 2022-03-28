@@ -88,7 +88,7 @@ jobs:
           dst: |
             ${{ steps.meta.outputs.tags }}
 
-      - uses: peter-evans/dockerhub-description@v2
+      - uses: peter-evans/dockerhub-description@v3
         if: github.event_name != 'pull_request'
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
