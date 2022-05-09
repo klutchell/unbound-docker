@@ -42,7 +42,7 @@ jobs:
         with:
           driver-opts: network=host
 
-      - uses: docker/build-push-action@v2
+      - uses: docker/build-push-action@v3
         with:
           platforms: ${{ env.platforms }}
           labels: ${{ steps.meta.outputs.labels }}
