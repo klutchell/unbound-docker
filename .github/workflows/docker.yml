@@ -53,7 +53,7 @@ jobs:
             ${{ steps.meta.outputs.tags }}
           push: true
 
-      - uses: docker/setup-qemu-action@v1
+      - uses: docker/setup-qemu-action@v2
 
       - name: Run tests
         run: |
