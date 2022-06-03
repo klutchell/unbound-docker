@@ -35,7 +35,7 @@ ENV HOME=/home/br-user
 
 ENV LC_ALL=en_US.UTF-8
 
-ARG BR_VERSION=2021.11
+ARG BR_VERSION=2022.02.2
 
 RUN git clone --depth 1 --branch ${BR_VERSION} https://git.busybox.net/buildroot
 
