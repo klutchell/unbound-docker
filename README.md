@@ -9,49 +9,47 @@
 
 NLnet Labs documentation: <https://unbound.docs.nlnetlabs.nl/en/latest/>
 
+Print version information:
+
 ```bash
-# print version information
 docker run --rm klutchell/unbound -V
 ```
 
+Print general usage:
+
 ```bash
-# print general usage
 docker run --rm klutchell/unbound -h
 ```
 
+Run a recursive dns server on host port 53
+
 ```bash
-# run a recursive dns server on host port 53
 docker run --name unbound \
-  -p 53:53/tcp \
-  -p 53:53/udp \
+  -p 53:53/tcp -p 53:53/udp \
   klutchell/unbound
 ```
 
-```bash
-# mount existing configuration from a host directory
-# examples can be downloaded from root_overlay/etc/unbound
-docker run --name unbound \
-  -p 53:53/tcp \
-  -p 53:53/udp \
-  -v /path/to/config:/etc/unbound \
-  klutchell/unbound
-```
+Add a regular healthcheck to test DNS resolution.
+Read more about Docker healthchecks here: <https://docs.docker.com/engine/reference/builder/#healthcheck>
 
 ```bash
-# add a regular healthcheck to test dns resolution
 docker run --name unbound \
-  -p 53:53/tcp \
-  -p 53:53/udp \
-  -v /path/to/config:/etc/unbound \
+  -p 53:53/tcp -p 53:53/udp \
   --health-cmd "dig sigok.verteiltesysteme.net @127.0.0.1" \
   klutchell/unbound
 ```
 
-The provided `unbound.conf` will provide recursive DNS with DNSSEC validation.
-However Unbound has many features available so I recommend getting familiar with the
-documentation and mounting your own config directory.
+Mount custom configuration from a host directory. Files must be readable by user/group `101:102` or world.
+Examples can be downloaded from [custom.conf.d](./root_overlay/etc/unbound/custom.conf.d) in this project.
 
-<https://unbound.docs.nlnetlabs.nl/en/latest/manpages/unbound.conf.html>
+```bash
+docker run --name unbound \
+  -p 53:53/tcp -p 53:53/udp \
+  -v /path/to/config:/etc/unbound/custom.conf.d \
+  klutchell/unbound
+```
+
+See all available config options here: <https://unbound.docs.nlnetlabs.nl/en/latest/manpages/unbound.conf.html>
 
 ### Examples
 
