@@ -78,7 +78,7 @@ services:
         ipv4_address: 172.28.0.3
     environment:
       TZ: "America/Chicago"
-      PIHOLE_DNS: "172.28.0.2;172.28.0.2"
+      PIHOLE_DNS_: "172.28.0.2;172.28.0.2"
     volumes:
       - "pihole:/etc/pihole"
       - "dnsmasq:/etc/dnsmasq.d"
