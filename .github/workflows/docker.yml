@@ -59,12 +59,13 @@ jobs:
         run: |
           for platform in $(tr ',' '\n' <<< "${{ env.platforms }}") ; do
             docker pull --platform ${platform} localhost:5000/${{ env.slug }}:local
-            docker run -d --name sut localhost:5000/${{ env.slug }}:local
-            docker exec sut unbound -V | tee /dev/stderr | grep -wq "$(head -n1 VERSION)" || { docker logs sut ; exit 1 ; }
+            docker run --rm localhost:5000/${{ env.slug }}:local -V 2>&1 | tee /dev/stderr | grep -wq "$(head -n1 VERSION)"
+            docker run --rm --entrypoint unbound-checkconf localhost:5000/${{ env.slug }}:local -o root-hints 2>&1 | tee /dev/stderr | grep -wq "/etc/unbound/root.hints"
+            docker run --rm -d --name sut localhost:5000/${{ env.slug }}:local
             docker exec sut dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -wq NOERROR || { docker logs sut ; exit 1 ; }
             docker exec sut dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -wq SERVFAIL || { docker logs sut ; exit 1 ; }
             docker logs sut
-            docker rm -f sut
+            docker stop sut
           done
 
       - uses: docker/login-action@v2
