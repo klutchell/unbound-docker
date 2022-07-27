@@ -1,0 +1,22 @@
+version: "2"
+
+services:
+
+  server:
+    image: ${TEST_TAG:-sut:latest}
+    networks:
+      - internal
+
+  sut:
+    image: alpine:3.16
+    networks:
+      - internal
+    depends_on:
+      - server
+    entrypoint: ""
+    command: >-
+      sh -c '
+      apk add --no-cache bind-tools &&
+      dig sigok.verteiltesysteme.net @server +dnssec | tee /dev/stderr | grep -wq NOERROR &&
+      dig sigfail.verteiltesysteme.net @server +dnssec | tee /dev/stderr | grep -wq SERVFAIL
+      '

@@ -1,37 +1,87 @@
 name: docker
 
 on:
-  push:
-    tags:
-      - "*"
-    branches:
-      - "main"
-  pull_request:
-    branches:
-      - "main"
-
-env:
-  image: "klutchell/unbound"
-  platforms: "linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6"
-  registries: "docker.io,ghcr.io"
+  workflow_call:
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: false
+      DOCKERHUB_PASSWORD:
+        required: false
+    inputs:
+      images:
+        type: string
+        required: true
+      working_directory:
+        type: string
+        required: false
+      context:
+        type: string
+        required: false
+      dockerfile:
+        type: string
+        required: false
+      target:
+        type: string
+        required: false
+      cache_from:
+        type: string
+        required: false
+      platforms:
+        type: string
+        required: false
+      publish:
+        type: boolean
+        required: false
 
 jobs:
-  build:
-    runs-on: ubuntu-20.04
 
-    services:
-      registry:
-        image: registry:2.7.1
-        ports:
-          - 5000:5000
+  matrix:
+    runs-on: ubuntu-latest
+
+    outputs:
+      platforms: ${{ steps.platforms.outputs.build }}
 
     steps:
+
+      - id: platforms
+        uses: kanga333/json-array-builder@v0.1.0
+        with:
+          str: ${{ inputs.platforms || 'linux/amd64' }}
+          separator: "newline"
+
+  test:
+    runs-on: ubuntu-latest
+    needs: [ matrix ]
+
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJSON(needs.matrix.outputs.platforms) }}
+
+    env:
+      TEST_TAG: sut:latest
+
+    steps:
+
+      - uses: docker/setup-qemu-action@v2
+
+      - uses: docker/setup-buildx-action@v2
+
       - uses: actions/checkout@v3
+
+      - uses: actions/cache@v3
+        with:
+          path: /tmp/cache
+          key: buildx-cache
 
       - id: meta
         uses: docker/metadata-action@v4
         with:
-          images: docker.io/${{ env.image }},ghcr.io/${{ env.image }}
+          images: ${{ inputs.images }}
           tags: |
             type=ref,event=tag
             type=ref,event=branch
@@ -39,62 +89,85 @@ jobs:
             type=sha
             type=semver,pattern={{version}}
 
-      - uses: docker/setup-buildx-action@v2
+      - id: build
+        uses: docker/build-push-action@v3
         with:
-          driver-opts: network=host
-
-      - uses: docker/build-push-action@v3
-        with:
-          platforms: ${{ env.platforms }}
+          platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          tags: localhost:5000/${{ env.image }}:local
-          cache-to: type=gha,mode=max
+          cache-to: type=local,dest=/tmp/cache
           cache-from: |
             type=gha
             ${{ steps.meta.outputs.tags }}
-            docker.io/${{ env.image }}:${{ github.base_ref }}
-            ghcr.io/${{ env.image }}:${{ github.base_ref }}
-          push: true
+            ${{ inputs.cache_from }}
+            type=local,src=/tmp/cache
+          context: ${{ inputs.context }}
+          target: ${{ inputs.target }}
+          tags: ${{ env.TEST_TAG }}
+          push: false
+          load: true
+
+      - run: |
+          docker compose -f docker-compose.yml -f docker-compose.test.yml up --no-build --exit-code-from sut
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [ matrix, test ]
+    if: ${{ inputs.publish == true }}
+
+    steps:
 
       - uses: docker/setup-qemu-action@v2
 
-      - name: Run tests
-        run: |
-          for platform in $(tr ',' '\n' <<< "${{ env.platforms }}") ; do
-            docker pull --platform ${platform} localhost:5000/${{ env.image }}:local
-            docker run --rm localhost:5000/${{ env.image }}:local -V 2>&1 | tee /dev/stderr | grep -wq "$(head -n1 VERSION)"
-            docker run --rm --entrypoint unbound-checkconf localhost:5000/${{ env.image }}:local -o root-hints 2>&1 | tee /dev/stderr | grep -wq "/etc/unbound/root.hints"
-            docker run --rm -d --name sut localhost:5000/${{ env.image }}:local
-            docker exec sut dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -wq NOERROR || { docker logs sut ; exit 1 ; }
-            docker exec sut dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -wq SERVFAIL || { docker logs sut ; exit 1 ; }
-            docker logs sut
-            docker stop sut
-          done
+      - uses: docker/setup-buildx-action@v2
+
+      - uses: actions/cache@v3
+        with:
+          path: /tmp/cache
+          key: buildx-cache
+
+      - id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ inputs.images }}
+          tags: |
+            type=ref,event=tag
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha
+            type=semver,pattern={{version}}
 
       - uses: docker/login-action@v2
-        if: github.actor == github.repository_owner
+        if: ${{ contains(inputs.images, 'ghcr.io') }}
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: docker/login-action@v2
-        if: github.actor == github.repository_owner
+        if: ${{ contains(inputs.images, 'docker.io') }}
         with:
           registry: docker.io
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - uses: akhilerm/tag-push-action@v2.0.0
-        if: github.actor == github.repository_owner
+      - uses: docker/build-push-action@v3
         with:
-          src: localhost:5000/${{ env.image }}:local
-          dst: |
+          platforms: ${{ inputs.platforms }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-to: type=gha,mode=max
+          cache-from: |
+            type=gha
             ${{ steps.meta.outputs.tags }}
+            ${{ inputs.cache_from }}
+            type=local,src=/tmp/cache
+          context: ${{ inputs.context }}
+          target: ${{ inputs.target }}
+          tags: ${{ steps.meta.outputs.tags }}
+          push: ${{ inputs.publish == true }}
 
       - uses: peter-evans/dockerhub-description@v3
-        if: github.event_name != 'pull_request'
+        if: ${{ contains(inputs.images, 'docker.io') && github.event_name != 'pull_request' }} 
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          repository: ${{ env.image }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ fromJSON(needs.inputs.outputs.json).sut }}
