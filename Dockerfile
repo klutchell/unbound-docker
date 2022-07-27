@@ -62,7 +62,8 @@ RUN support/kconfig/merge_config.sh -m \
 	config/*.cfg
 
 RUN --mount=type=cache,target=/cache,uid=1000,gid=1000,sharing=private \
-    make olddefconfig && make source && make
+    make olddefconfig && make source && make && \
+    rm -rf output/build output/host
 
 # hadolint ignore=DL3002
 USER root
