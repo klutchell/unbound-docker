@@ -11,8 +11,9 @@ on:
       - "main"
 
 env:
-  slug: "klutchell/unbound"
+  image: "klutchell/unbound"
   platforms: "linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6"
+  registries: "docker.io,ghcr.io"
 
 jobs:
   build:
@@ -30,7 +31,7 @@ jobs:
       - id: meta
         uses: docker/metadata-action@v4
         with:
-          images: docker.io/${{ env.slug }},ghcr.io/${{ env.slug }}
+          images: docker.io/${{ env.image }},ghcr.io/${{ env.image }}
           tags: |
             type=ref,event=tag
             type=ref,event=branch
@@ -46,11 +47,13 @@ jobs:
         with:
           platforms: ${{ env.platforms }}
           labels: ${{ steps.meta.outputs.labels }}
-          tags: localhost:5000/${{ env.slug }}:local
+          tags: localhost:5000/${{ env.image }}:local
           cache-to: type=gha,mode=max
           cache-from: |
             type=gha
             ${{ steps.meta.outputs.tags }}
+            docker.io/${{ env.image }}:${{ github.base_ref }}
+            ghcr.io/${{ env.image }}:${{ github.base_ref }}
           push: true
 
       - uses: docker/setup-qemu-action@v2
@@ -58,10 +61,10 @@ jobs:
       - name: Run tests
         run: |
           for platform in $(tr ',' '\n' <<< "${{ env.platforms }}") ; do
-            docker pull --platform ${platform} localhost:5000/${{ env.slug }}:local
-            docker run --rm localhost:5000/${{ env.slug }}:local -V 2>&1 | tee /dev/stderr | grep -wq "$(head -n1 VERSION)"
-            docker run --rm --entrypoint unbound-checkconf localhost:5000/${{ env.slug }}:local -o root-hints 2>&1 | tee /dev/stderr | grep -wq "/etc/unbound/root.hints"
-            docker run --rm -d --name sut localhost:5000/${{ env.slug }}:local
+            docker pull --platform ${platform} localhost:5000/${{ env.image }}:local
+            docker run --rm localhost:5000/${{ env.image }}:local -V 2>&1 | tee /dev/stderr | grep -wq "$(head -n1 VERSION)"
+            docker run --rm --entrypoint unbound-checkconf localhost:5000/${{ env.image }}:local -o root-hints 2>&1 | tee /dev/stderr | grep -wq "/etc/unbound/root.hints"
+            docker run --rm -d --name sut localhost:5000/${{ env.image }}:local
             docker exec sut dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -wq NOERROR || { docker logs sut ; exit 1 ; }
             docker exec sut dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec | tee /dev/stderr | grep -wq SERVFAIL || { docker logs sut ; exit 1 ; }
             docker logs sut
@@ -85,7 +88,7 @@ jobs:
       - uses: akhilerm/tag-push-action@v2.0.0
         if: github.actor == github.repository_owner
         with:
-          src: localhost:5000/${{ env.slug }}:local
+          src: localhost:5000/${{ env.image }}:local
           dst: |
             ${{ steps.meta.outputs.tags }}
 
@@ -94,4 +97,4 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          repository: ${{ env.slug }}
+          repository: ${{ env.image }}
