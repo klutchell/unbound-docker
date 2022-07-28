@@ -35,13 +35,26 @@ on:
 
 jobs:
 
-  matrix:
+  meta:
     runs-on: ubuntu-latest
 
     outputs:
+      labels: ${{ steps.metadata.outputs.labels }}
+      tags: ${{ steps.metadata.outputs.tags }}
       platforms: ${{ steps.platforms.outputs.build }}
 
     steps:
+
+      - id: metadata
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ inputs.images }}
+          tags: |
+            type=ref,event=tag
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha
+            type=semver,pattern={{version}}
 
       - id: platforms
         uses: kanga333/json-array-builder@v0.1.0
@@ -51,7 +64,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    needs: [ matrix ]
+    needs: [ meta ]
 
     defaults:
       run:
@@ -60,7 +73,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: ${{ fromJSON(needs.matrix.outputs.platforms) }}
+        platform: ${{ fromJSON(needs.meta.outputs.platforms) }}
 
     env:
       TEST_TAG: sut:latest
@@ -73,45 +86,38 @@ jobs:
 
       - uses: actions/checkout@v3
 
-      - uses: actions/cache@v3
-        with:
-          path: /tmp/cache
-          key: buildx-cache
-
-      - id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: ${{ inputs.images }}
-          tags: |
-            type=ref,event=tag
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha
-            type=semver,pattern={{version}}
-
       - id: build
         uses: docker/build-push-action@v3
         with:
           platforms: ${{ matrix.platform }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-to: type=local,dest=/tmp/cache
+          labels: ${{ needs.meta.outputs.labels }}
+          cache-to: type=local,dest=/tmp/artifacts
           cache-from: |
             type=gha
-            ${{ steps.meta.outputs.tags }}
+            ${{ needs.meta.outputs.tags }}
             ${{ inputs.cache_from }}
-            type=local,src=/tmp/cache
+            type=local,src=/tmp/artifacts
           context: ${{ inputs.context }}
           target: ${{ inputs.target }}
           tags: ${{ env.TEST_TAG }}
-          push: false
           load: true
 
       - run: |
           docker compose -f docker-compose.yml -f docker-compose.test.yml up --no-build --exit-code-from sut
 
+      - id: digest
+        run: |
+          echo "::set-output name=sha256::$(echo ${{ steps.build.outputs.digest }} | awk -F ':' '{ print $2 }')"
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.digest.outputs.sha256 }}
+          path: /tmp/artifacts/
+          retention-days: 1
+
   deploy:
     runs-on: ubuntu-latest
-    needs: [ matrix, test ]
+    needs: [ meta, test ]
     if: ${{ inputs.publish == true }}
 
     steps:
@@ -120,21 +126,9 @@ jobs:
 
       - uses: docker/setup-buildx-action@v2
 
-      - uses: actions/cache@v3
+      - uses: actions/download-artifact@v3
         with:
           path: /tmp/cache
-          key: buildx-cache
-
-      - id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: ${{ inputs.images }}
-          tags: |
-            type=ref,event=tag
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha
-            type=semver,pattern={{version}}
 
       - uses: docker/login-action@v2
         if: ${{ contains(inputs.images, 'ghcr.io') }}
@@ -153,16 +147,17 @@ jobs:
       - uses: docker/build-push-action@v3
         with:
           platforms: ${{ inputs.platforms }}
-          labels: ${{ steps.meta.outputs.labels }}
+          labels: ${{ needs.meta.outputs.labels }}
           cache-to: type=gha,mode=max
-          cache-from: |
-            type=gha
-            ${{ steps.meta.outputs.tags }}
-            ${{ inputs.cache_from }}
-            type=local,src=/tmp/cache
+          # cache-from: |
+          #   type=gha
+          #   ${{ needs.meta.outputs.tags }}
+          #   ${{ inputs.cache_from }}
+          #   type=local,src=/tmp/cache/*
+          cache-from: type=local,src=/tmp/cache/*
           context: ${{ inputs.context }}
           target: ${{ inputs.target }}
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ needs.meta.outputs.tags }}
           push: ${{ inputs.publish == true }}
 
       - uses: peter-evans/dockerhub-description@v3
@@ -171,3 +166,12 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: ${{ fromJSON(needs.inputs.outputs.json).sut }}
+
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: c-hive/gha-remove-artifacts@v1
+        with:
+          age: '1 hour'
