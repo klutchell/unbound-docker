@@ -9,23 +9,9 @@ Note that this image is [distroless](https://github.com/GoogleContainerTools/dis
 
 > "Distroless" images contain only your application and its runtime dependencies. They do not contain package managers, shells or any other programs you would expect to find in a standard Linux distribution.
 
-## Usage
+## Usage/Examples
 
-NLnet Labs documentation: <https://unbound.docs.nlnetlabs.nl/en/latest/>
-
-Print version information:
-
-```bash
-docker run --rm klutchell/unbound -V
-```
-
-Print general usage:
-
-```bash
-docker run --rm klutchell/unbound -h
-```
-
-Run a recursive dns server on host port 53
+Run a recursive dns server on host port 53 with the default configuration.
 
 ```bash
 docker run --name unbound \
@@ -33,8 +19,8 @@ docker run --name unbound \
   klutchell/unbound
 ```
 
-Mount custom configuration from a host directory. Files must be readable by user/group `101:102` or world.
-Examples can be downloaded from [custom.conf.d](./root_overlay/etc/unbound/custom.conf.d) in this project.
+Optionally mount [custom configuration](https://unbound.docs.nlnetlabs.nl/en/latest/manpages/unbound.conf.html) from a host directory.
+Files must be readable by user/group `101:102` or world.
 
 ```bash
 docker run --name unbound \
@@ -43,55 +29,7 @@ docker run --name unbound \
   klutchell/unbound
 ```
 
-See all available config options here: <https://unbound.docs.nlnetlabs.nl/en/latest/manpages/unbound.conf.html>
-
-### Examples
-
-Use unbound as upstream DNS for [Pi-Hole](https://pi-hole.net/).
-
-```yaml
-version: "2"
-
-volumes:
-  pihole:
-  dnsmasq:
-
-services:
-  pihole:
-    container_name: pihole
-    image: pihole/pihole:latest
-    ports:
-      - "53:53/tcp"
-      - "53:53/udp"
-      - "67:67/udp"
-      - "80:80/tcp"
-    networks:
-      default:
-        ipv4_address: 172.28.0.3
-    environment:
-      TZ: "America/Chicago"
-      PIHOLE_DNS_: "172.28.0.2;172.28.0.2"
-    volumes:
-      - "pihole:/etc/pihole"
-      - "dnsmasq:/etc/dnsmasq.d"
-    cap_add:
-      - NET_ADMIN
-    restart: unless-stopped
-
-  unbound:
-    image: klutchell/unbound
-    networks:
-      default:
-        ipv4_address: 172.28.0.2
-
-networks:
-  default:
-    driver: bridge
-    ipam:
-      config:
-      - subnet: 172.28.0.0/24
-        gateway: 172.28.0.1
-```
+Examples of docker-compose usage can be found in [examples](./examples)
 
 ## Build
 
@@ -138,6 +76,6 @@ Please open an issue or submit a pull request with any features, fixes, or chang
 
 <https://github.com/klutchell/unbound-docker/issues>
 
-## Acknowledgments
+## Legal
 
 Original software is by NLnet Labs: <https://unbound.net>
