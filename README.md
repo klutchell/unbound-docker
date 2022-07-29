@@ -5,6 +5,10 @@
 
 [Unbound](https://unbound.net/) is a validating, recursive, and caching DNS resolver.
 
+Note that this image is [distroless](https://github.com/GoogleContainerTools/distroless)!
+
+> "Distroless" images contain only your application and its runtime dependencies. They do not contain package managers, shells or any other programs you would expect to find in a standard Linux distribution.
+
 ## Usage
 
 NLnet Labs documentation: <https://unbound.docs.nlnetlabs.nl/en/latest/>
@@ -26,16 +30,6 @@ Run a recursive dns server on host port 53
 ```bash
 docker run --name unbound \
   -p 53:53/tcp -p 53:53/udp \
-  klutchell/unbound
-```
-
-Add a regular healthcheck to test DNS resolution.
-Read more about Docker healthchecks here: <https://docs.docker.com/engine/reference/builder/#healthcheck>
-
-```bash
-docker run --name unbound \
-  -p 53:53/tcp -p 53:53/udp \
-  --health-cmd "dig sigok.verteiltesysteme.net @127.0.0.1" \
   klutchell/unbound
 ```
 
