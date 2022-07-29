@@ -1,0 +1,48 @@
+version: "2"
+
+volumes:
+  pihole:
+  dnsmasq:
+
+services:
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "67:67/udp"
+      - "80:80/tcp"
+    networks:
+      default:
+        ipv4_address: 172.28.0.3
+    environment:
+      PIHOLE_DNS_: "172.28.0.2;172.28.0.2"
+    volumes:
+      - "pihole:/etc/pihole"
+      - "dnsmasq:/etc/dnsmasq.d"
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
+
+  unbound:
+    image: klutchell/unbound
+    networks:
+      default:
+        ipv4_address: 172.28.0.2
+    healthcheck:
+      test: ["CMD", "dig", "-p", "53", "sigok.verteiltesysteme.net", "@127.0.0.1"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 30s
+    volumes:
+      - /path/to/config:/etc/unbound/custom.conf.d
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 172.28.0.0/24
+        gateway: 172.28.0.1
