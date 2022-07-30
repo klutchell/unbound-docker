@@ -138,7 +138,7 @@ jobs:
             ${{ steps.meta.outputs.tags }}
 
       - uses: peter-evans/dockerhub-description@v3
-        if: ${{ inputs.publish != false && inputs.dockerhub_description_repo != '' && (github.event_name != 'pull_request' || github.event.action == 'closed') }}
+        if: ${{ inputs.publish != false && inputs.dockerhub_description_repo != '' && (github.event_name != 'pull_request' || (github.event.action == 'closed' && github.event.pull_request.merged == true)) }}
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
