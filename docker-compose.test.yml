@@ -3,13 +3,13 @@ version: "2"
 services:
 
   server:
-    image: ${TEST_TAG:-sut:latest}
+    image: sut
     networks:
       - internal
     command: -v -v -v
 
   version:
-    image: ${TEST_TAG:-sut:latest}
+    image: sut
     networks:
       - internal
     command: -V

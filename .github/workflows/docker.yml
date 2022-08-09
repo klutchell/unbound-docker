@@ -5,32 +5,38 @@ on:
     secrets:
       DOCKERHUB_USERNAME:
         required: false
-      DOCKERHUB_PASSWORD:
+      DOCKERHUB_TOKEN:
         required: false
     inputs:
-      images:
-        type: string
-        required: true
       working_directory:
+        description: 'Github actions working directory'
         type: string
         required: false
-      context:
-        type: string
-        required: false
-      dockerfile:
-        type: string
-        required: false
-      target:
+        default: '.'
+      images:
+        description: 'Newline separated list of images (without tags) to push, default is no push'
         type: string
         required: false
       cache_from:
+        description: 'Newline separated list of additional external cache sources'
         type: string
         required: false
       platforms:
+        description: 'Newline separated list of target platforms, default is linux/amd64'
         type: string
         required: false
-      publish:
-        type: boolean
+        default: 'linux/amd64'
+      context:
+        description: 'Docker build context directory, default is ./'
+        type: string
+        required: false
+      dockerfile:
+        description: 'Path to the Dockerfile relative to the context, default is ./Dockerfile'
+        type: string
+        required: false
+      target:
+        description: 'Sets the target stage to build'
+        type: string
         required: false
       dockerhub_description_repo:
         type: string
@@ -49,11 +55,11 @@ jobs:
 
     defaults:
       run:
-        working-directory: ${{ inputs.working_directory || '.' }}
+        working-directory: ${{ inputs.working_directory }}
+        shell: bash
 
     env:
-      TEST_TAG: localhost:5000/sut:latest
-      PLATFORMS: ${{ inputs.platforms || 'linux/amd64' }}
+      LOCAL_IMAGE: localhost:5000/sut
 
     steps:
 
@@ -83,7 +89,7 @@ jobs:
       - id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ inputs.images }}
+          images: ${{ inputs.images || env.LOCAL_IMAGE }}
           tags: |
             type=ref,event=tag
             type=ref,event=branch
@@ -94,7 +100,7 @@ jobs:
       - id: build
         uses: docker/build-push-action@v3
         with:
-          platforms: ${{ env.PLATFORMS }}
+          platforms: ${{ inputs.platforms }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-to: type=gha,mode=max
           cache-from: |
@@ -104,27 +110,37 @@ jobs:
           context: ${{ inputs.context }}
           file: ${{ inputs.dockerfile }}
           target: ${{ inputs.target }}
-          tags: ${{ env.TEST_TAG }}
+          tags: ${{ env.LOCAL_IMAGE }}:latest
           load: false
           push: true
 
-      - id: test
+      - shell: bash
+        env:
+          PLATFORMS: ${{ inputs.platforms }}
+          TAGS: ${{ steps.meta.outputs.tags }}
         run: |
-          for platform in $PLATFORMS ; do
-            docker pull --platform=$platform ${{ env.TEST_TAG }}
-            docker inspect ${{ env.TEST_TAG }}
+          for platform in $PLATFORMS
+          do
+            docker pull --platform=$platform ${{ env.LOCAL_IMAGE }}:latest
+            docker tag ${{ env.LOCAL_IMAGE }}:latest sut:latest
+            docker tag ${{ env.LOCAL_IMAGE }}:latest ${{ github.repository }}:latest
+            for tag in $TAGS
+            do
+              docker tag ${{ env.LOCAL_IMAGE }}:latest ${tag}
+            done
+            docker inspect ${{ env.LOCAL_IMAGE }}:latest
             docker compose -f docker-compose.yml -f docker-compose.test.yml up --no-build --exit-code-from sut
           done
 
       - uses: docker/login-action@v2
-        if: ${{ inputs.publish != false && contains(inputs.images, 'ghcr.io') }}
+        if: ${{ github.actor == github.repository_owner && contains(inputs.images, 'ghcr.io') }}
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: docker/login-action@v2
-        if: ${{ inputs.publish != false && contains(inputs.images, 'docker.io') }}
+        if: ${{ github.actor == github.repository_owner && contains(inputs.images, 'docker.io') }}
         with:
           registry: docker.io
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -133,12 +149,12 @@ jobs:
       - uses: akhilerm/tag-push-action@v2.0.0
         if: github.actor == github.repository_owner
         with:
-          src: ${{ env.TEST_TAG }}
+          src: ${{ env.LOCAL_IMAGE }}:latest
           dst: |
             ${{ steps.meta.outputs.tags }}
 
       - uses: peter-evans/dockerhub-description@v3
-        if: ${{ inputs.publish != false && inputs.dockerhub_description_repo != '' && (github.event_name != 'pull_request' || (github.event.action == 'closed' && github.event.pull_request.merged == true)) }}
+        if: ${{ github.actor == github.repository_owner && inputs.dockerhub_description_repo != '' && github.event_name == 'push' && github.ref_name == github.event.repository.default_branch }}
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
