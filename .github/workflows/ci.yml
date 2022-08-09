@@ -1,13 +1,14 @@
 name: ci
 
 on:
-  push:
-    tags:
-      - "*"
   pull_request:
-    types: [opened, synchronize, closed]
     branches:
       - "main"
+      - "master"
+  push:
+    branches:
+      - "main"
+      - "master"
 
 jobs:
 
@@ -15,7 +16,6 @@ jobs:
     uses: ./.github/workflows/docker.yml
     secrets: inherit
     with:
-      working_directory: .
       cache_from: |
         docker.io/klutchell/unbound:main
         ghcr.io/klutchell/unbound:main
@@ -29,5 +29,4 @@ jobs:
         linux/arm64
         linux/arm/v7
         linux/arm/v6
-      publish: true
       dockerhub_description_repo: klutchell/unbound
