@@ -22,6 +22,7 @@ jobs:
       DOCKER_REGISTRY_PASS: ${{ secrets.DOCKER_REGISTRY_PASS }}
     with:
       protect_branch: false
+      skip_versioning: true
       docker_platforms: |
         linux/amd64
         linux/arm64
