@@ -1,39 +1,7 @@
 #syntax=docker/dockerfile:1.2
 
-# set by buildkit (DOCKER_BUILDKIT=1)
-# hadolint ignore=DL3029
-FROM --platform=$BUILDPLATFORM debian:bullseye-20211220-slim AS buildroot-base
-
-# hadolint ignore=DL3008
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        bc \
-        build-essential \
-        ca-certificates \
-        cmake \
-        cpio \
-        file \
-        git \
-        locales \
-        python3 \
-        rsync \
-        unzip \
-        wget && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# hadolint ignore=DL3059
-RUN sed -i 's/# \(en_US.UTF-8\)/\1/' /etc/locale.gen && \
-    /usr/sbin/locale-gen && \
-	useradd -ms /bin/bash br-user && \
-    chown -R br-user:br-user /home/br-user
-
-USER br-user
-
-WORKDIR /home/br-user
-
-ENV HOME=/home/br-user
-
-ENV LC_ALL=en_US.UTF-8
+# platform set by buildkit (DOCKER_BUILDKIT=1)
+FROM --platform=$BUILDPLATFORM buildroot/base:20211120.1925 AS buildroot-base
 
 ARG BR_VERSION=2022.02.2
 
