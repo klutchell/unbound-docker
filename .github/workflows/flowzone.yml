@@ -30,8 +30,3 @@ jobs:
         linux/arm/v6
       dockerhub_repo: klutchell/unbound
       ghcr_repo: klutchell/unbound
-      docker_cache_from: |
-        docker.io/klutchell/unbound:main
-        ghcr.io/klutchell/unbound:main
-        docker.io/klutchell/unbound:latest
-        ghcr.io/klutchell/unbound:latest
