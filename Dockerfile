@@ -3,7 +3,7 @@
 # platform set by buildkit (DOCKER_BUILDKIT=1)
 FROM --platform=$BUILDPLATFORM buildroot/base:20211120.1925 AS buildroot-base
 
-ARG BR_VERSION=2022.02.2
+ARG BR_VERSION=2022.02.5
 
 RUN git clone --depth 1 --branch ${BR_VERSION} https://git.busybox.net/buildroot
 
