@@ -8,7 +8,7 @@ on:
       - "master"
   push:
     tags:
-      - v*.*.*
+      - '*.*.*'
 
 jobs:
   flowzone:
