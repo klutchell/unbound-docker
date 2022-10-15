@@ -3,7 +3,7 @@ version: "2"
 services:
 
   server:
-    image: sut
+    image: localhost:5000/sut
     build:
       context: .
       dockerfile: Dockerfile
@@ -12,13 +12,14 @@ services:
     command: -v -v -v
 
   version:
-    image: sut
+    image: localhost:5000/sut
     build:
       context: .
       dockerfile: Dockerfile
     networks:
       - internal
     command: -V
+    restart: always
 
   sut:
     image: alpine:3.16
@@ -26,6 +27,7 @@ services:
       - internal
     depends_on:
       - server
+      - version
     entrypoint: ""
     command: >-
       /bin/sh -c '
