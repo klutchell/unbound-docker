@@ -31,7 +31,7 @@ services:
       default:
         ipv4_address: 172.28.0.2
     healthcheck:
-      test: ["CMD", "dig", "-p", "53", "sigok.verteiltesysteme.net", "@127.0.0.1"]
+      test: ["CMD", "dig", "-p", "53", "dnssec.works", "@127.0.0.1"]
       interval: 30s
       timeout: 30s
       retries: 3
