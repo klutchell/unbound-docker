@@ -6,7 +6,7 @@ variable "GITHUB_REPOSITORY" {
   default = "klutchell/unbound-docker"
 }
 
-target "server" {
+target "default" {
   context = "./"
   dockerfile = "Dockerfile"
   platforms = [
