@@ -7,24 +7,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    networks:
-      - internal
-    command: -v -v -v
+    command: -v -v
 
   version:
     image: localhost:5000/sut
     build:
       context: .
       dockerfile: Dockerfile
-    networks:
-      - internal
     command: -V
-    restart: always
 
   sut:
     image: alpine:3.16
-    networks:
-      - internal
     depends_on:
       - server
       - version
@@ -33,8 +26,8 @@ services:
       /bin/sh -c '
       apk add --no-cache bind-tools &&
       dig @server dnssec.works +dnssec +multi | tee /dev/stderr | grep -wq NOERROR &&
-      dig @server fail01.dnssec.works +dnssec +multi | tee /dev/stderr | grep -wq SERVFAIL &&
-      dig @server fail02.dnssec.works +dnssec +multi | tee /dev/stderr | grep -wq SERVFAIL &&
-      dig @server fail03.dnssec.works +dnssec +multi | tee /dev/stderr | grep -wq SERVFAIL &&
-      dig @server fail04.dnssec.works +dnssec +multi | tee /dev/stderr | grep -wq SERVFAIL
+      dig @server fail01.dnssec.works +dnssec +multi +time=120 | tee /dev/stderr | grep -wq SERVFAIL &&
+      dig @server fail02.dnssec.works +dnssec +multi +time=120 | tee /dev/stderr | grep -wq SERVFAIL &&
+      dig @server fail03.dnssec.works +dnssec +multi +time=120 | tee /dev/stderr | grep -wq SERVFAIL &&
+      dig @server fail04.dnssec.works +dnssec +multi +time=120 | tee /dev/stderr | grep -wq SERVFAIL
       '
