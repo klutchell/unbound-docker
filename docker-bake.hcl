@@ -6,7 +6,7 @@ variable "GITHUB_REPOSITORY" {
   default = "klutchell/unbound-docker"
 }
 
-target "server" {
+target "default" {
   context = "./"
   dockerfile = "Dockerfile"
   platforms = [
@@ -18,8 +18,8 @@ target "server" {
   cache-from = [
     "ghcr.io/klutchell/unbound:latest",
     "docker.io/klutchell/unbound:latest",
-    "ghcr.io/klutchell/unbound:master",
-    "docker.io/klutchell/unbound:master",
+    "ghcr.io/klutchell/unbound:main",
+    "docker.io/klutchell/unbound:main",
     "type=registry,ref=ghcr.io/klutchell/unbound:buildkit-cache-${base64encode(GITHUB_REF_NAME)},mode=max"
   ]
   cache-to = [

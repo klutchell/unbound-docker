@@ -60,11 +60,14 @@ docker run --rm --privileged multiarch/qemu-user-static:5.2.0-2 --reset -p yes
 # run a detached unbound container
 docker run --rm -d --name unbound klutchell/unbound
 
-# run dig with dnssec to test an example NOERROR endpoint
-docker exec unbound dig sigok.verteiltesysteme.net @127.0.0.1 +dnssec
+# run dig with dnssec to test NOERROR
+docker exec unbound dig @127.0.0.1 dnssec.works +dnssec +multi
 
-# run dig with dnssec to test an example SERVFAIL endpoint
-docker exec unbound dig sigfail.verteiltesysteme.net @127.0.0.1 +dnssec
+# run dig with dnssec to test SERVFAIL
+docker exec unbound dig @127.0.0.1 fail01.dnssec.works +dnssec +multi
+docker exec unbound dig @127.0.0.1 fail02.dnssec.works +dnssec +multi
+docker exec unbound dig @127.0.0.1 fail03.dnssec.works +dnssec +multi
+docker exec unbound dig @127.0.0.1 fail04.dnssec.works +dnssec +multi
 
 # stop and remove the container
 docker stop unbound
