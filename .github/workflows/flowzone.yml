@@ -25,4 +25,4 @@ jobs:
       disable_versioning: true
       docker_images: |
         ghcr.io/klutchell/unbound,
-        docker.io/klutchell/unbound
+        klutchell/unbound
