@@ -17,7 +17,7 @@ services:
     command: -V
 
   sut:
-    image: alpine:3.16
+    image: alpine:3.17
     depends_on:
       - server
       - version
