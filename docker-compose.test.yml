@@ -9,25 +9,42 @@ services:
       dockerfile: Dockerfile
     command: -v -v
 
-  version:
-    image: localhost:5000/sut
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: -V
-
   sut:
     image: alpine:3.17
     depends_on:
       - server
-      - version
-    entrypoint: ""
-    command: >-
-      /bin/sh -c '
-      apk add --no-cache bind-tools &&
-      dig @server dnssec.works +dnssec +multi | tee /dev/stderr | grep -wq NOERROR &&
-      dig @server fail01.dnssec.works +dnssec +multi +time=120 | tee /dev/stderr | grep -wq SERVFAIL &&
-      dig @server fail02.dnssec.works +dnssec +multi +time=120 | tee /dev/stderr | grep -wq SERVFAIL &&
-      dig @server fail03.dnssec.works +dnssec +multi +time=120 | tee /dev/stderr | grep -wq SERVFAIL &&
-      dig @server fail04.dnssec.works +dnssec +multi +time=120 | tee /dev/stderr | grep -wq SERVFAIL
-      '
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /test
+    entrypoint:
+      - /bin/sh
+      - -c
+    command:
+      - |
+        set -ex
+        apk add --no-cache bind-tools docker-cli docker-cli-compose
+
+        server_ip="$$(dig +short server | tail -n 1)"
+        while read id
+        do
+          if docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $${id} | grep -q "$${server_ip}"
+          then
+            server_id="$${id}"
+            break
+          fi
+        done < <(docker ps --format '{{.ID}}')
+
+        docker exec $${server_id} /sbin/unbound -V
+        docker exec $${server_id} /bin/drill -v
+
+        sleep 5
+
+        docker exec $${server_id} drill dnssec.works 127.0.0.1:53
+        ! docker exec $${server_id} drill foo.local 127.0.0.1:53
+        ! docker exec $${server_id} drill bar.local 127.0.0.1:53
+
+        dig @server -p 53 dnssec.works +dnssec +multi
+        ! dig @server -p 53 fail01.dnssec.works +dnssec +multi
+        ! dig @server -p 53 fail02.dnssec.works +dnssec +multi
+        ! dig @server -p 53 fail03.dnssec.works +dnssec +multi
+        ! dig @server -p 53 fail04.dnssec.works +dnssec +multi
