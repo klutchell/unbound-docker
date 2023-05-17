@@ -104,9 +104,7 @@ COPY --chown=unbound:unbound rootfs_overlay/ /
 
 RUN [ "unbound", "-V" ]
 # hadolint ignore=DL3059
-RUN [ "unbound-checkconf" ]
-# hadolint ignore=DL3059
-RUN [ "unbound-anchor", "-v" ]	
+RUN [ "unbound-checkconf" ]	
 # hadolint ignore=DL3059
 RUN [ "drill", "-v" ]
 # hadolint ignore=DL3059
