@@ -2,21 +2,19 @@
 
 FROM alpine:3.17.3 AS build-base
 
+ARG TARGETARCH
+
 # hadolint ignore=DL3018
-RUN --mount=type=cache,target=/var/cache/apk \
-	apk add --update-cache --cache-dir=/var/cache/apk \
+RUN --mount=type=cache,id=apk-cache-${TARGETARCH},target=/var/cache/apk \
+	apk add --update --cache-dir=/var/cache/apk \
 	binutils \
 	bind-tools \
 	build-base \
 	ca-certificates-bundle \
 	libevent-dev \
-	libevent-static \
 	libsodium-dev \
-	libsodium-static \
 	openssl-dev \
-	openssl-libs-static \
-	expat-dev \
-	expat-static
+	expat-dev
 
 ARG UNBOUND_UID=101
 ARG UNBOUND_GID=102
@@ -46,9 +44,11 @@ RUN ./configure \
 	--localstatedir=/var \
 	--with-ssl \
 	--disable-rpath \
-	--disable-shared
+	--disable-shared \
+	--disable-static \
+	--disable-ldns-config
 
-RUN make -j"$(nproc)" LDFLAGS=-all-static && \
+RUN make -j"$(nproc)" && \
 	make install && \
 	strip /opt/usr/bin/drill && \
 	ln -s drill /opt/usr/bin/dig
@@ -74,7 +74,7 @@ RUN ./configure \
 	--prefix=/opt/usr \
 	--sysconfdir=/etc \
 	--localstatedir=/var \
-	--enable-fully-static \
+	--disable-static \
 	--disable-shared \
 	--disable-rpath \
 	--enable-dnscrypt \
@@ -85,10 +85,18 @@ RUN ./configure \
 
 RUN make -j"$(nproc)" && \
 	make install && \
-	strip /opt/usr/sbin/unbound
+	strip /opt/usr/sbin/unbound \
+	/opt/usr/sbin/unbound-anchor \
+	/opt/usr/sbin/unbound-checkconf \
+	/opt/usr/sbin/unbound-control \
+	/opt/usr/sbin/unbound-host
 
 FROM scratch
 
+COPY --from=build-base /lib/ld-musl*.so.1 /lib/
+COPY --from=build-base /usr/lib/libgcc_s.so.1 /usr/lib/
+COPY --from=build-base /lib/libcrypto.so.3 /lib/libssl.so.3 /lib/
+COPY --from=build-base /usr/lib/libsodium.so.23 /usr/lib/libevent-2.1.so.7 /usr/lib/libexpat.so.1 /usr/lib/
 COPY --from=build-base /etc/ssl/ /etc/ssl/
 COPY --from=build-base /etc/passwd /etc/group /etc/
 
