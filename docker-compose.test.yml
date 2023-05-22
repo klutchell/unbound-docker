@@ -10,7 +10,7 @@ services:
     command: -v -v
 
   sut:
-    image: alpine:3.17
+    image: alpine:3.18
     depends_on:
       - server
     volumes:
