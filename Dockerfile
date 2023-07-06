@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.4
 
-FROM alpine:3.18.0 AS build-base
+FROM alpine:3.18.2 AS build-base
 
 ARG TARGETARCH
 
