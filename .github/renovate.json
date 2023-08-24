@@ -1,0 +1,7 @@
+{
+  "extends": [
+    "config:recommended",
+    "regexManagers:dockerfileVersions",
+    "regexManagers:githubActionsVersions"
+  ]
+}
