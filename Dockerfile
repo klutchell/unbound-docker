@@ -78,6 +78,7 @@ RUN ./configure \
 	--disable-shared \
 	--disable-rpath \
 	--enable-dnscrypt \
+	--enable-subnet \
 	--with-pthreads \
 	--with-libevent \
 	--with-ssl \
