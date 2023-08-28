@@ -1,0 +1,6 @@
+server:
+    # Enable ECS
+    module-config: "subnetcache validator iterator"
+    # Send client source address to each and every authority. TODO: Find an actual list of IPs of CDN's
+    send-client-subnet: 0.0.0.0/0
+    send-client-subnet: ::0/64

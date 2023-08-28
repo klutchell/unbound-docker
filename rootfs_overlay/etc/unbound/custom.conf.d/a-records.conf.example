@@ -1,0 +1,3 @@
+server:
+    local-data: "somecomputer.local. A 192.168.1.1"
+    local-data-ptr: "192.168.1.1 somecomputer.local."
