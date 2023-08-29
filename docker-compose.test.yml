@@ -7,6 +7,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    volumes:
+      # enable send-client-subnet example configuration file
+      - ./rootfs_overlay/etc/unbound/custom.conf.d/send-client-subnet.conf.example:/etc/unbound/custom.conf.d/send-client-subnet.conf:ro
     command: -v -v
 
   sut:
@@ -50,3 +53,6 @@ services:
         ! dig @server -p 53 fail02.dnssec.works +dnssec +multi | tee /dev/stderr | grep NOERROR
         ! dig @server -p 53 fail03.dnssec.works +dnssec +multi | tee /dev/stderr | grep NOERROR
         ! dig @server -p 53 fail04.dnssec.works +dnssec +multi | tee /dev/stderr | grep NOERROR
+
+        # test ECS
+        dig @server -p 53 TXT o-o.myaddr.l.google.com +short | tee /dev/stderr | grep edns0-client-subnet
