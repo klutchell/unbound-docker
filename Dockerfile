@@ -58,9 +58,9 @@ FROM build-base AS unbound
 
 WORKDIR /src
 
-ARG UNBOUND_VERSION=1.17.1
-# https://nlnetlabs.nl/downloads/unbound/unbound-1.17.1.tar.gz.sha256
-ARG UNBOUND_SHA256="ee4085cecce12584e600f3d814a28fa822dfaacec1f94c84bfd67f8a5571a5f4"
+ARG UNBOUND_VERSION=1.18.0
+# https://nlnetlabs.nl/downloads/unbound/unbound-1.18.0.tar.gz.sha256
+ARG UNBOUND_SHA256="3da95490a85cff6420f26fae0b84a49f5112df1bf1b7fc34f8724f02082cb712"
 
 ADD https://nlnetlabs.nl/downloads/unbound/unbound-${UNBOUND_VERSION}.tar.gz unbound.tar.gz
 
@@ -92,7 +92,12 @@ RUN make -j"$(nproc)" && \
 	/opt/usr/sbin/unbound-control \
 	/opt/usr/sbin/unbound-host
 
-FROM scratch
+FROM scratch AS conf-example
+
+# docker build . --target conf-example --output rootfs_overlay/etc/unbound/
+COPY --from=unbound /etc/unbound/unbound.conf /unbound.conf.example
+
+FROM scratch AS final
 
 COPY --from=build-base /lib/ld-musl*.so.1 /lib/
 COPY --from=build-base /usr/lib/libgcc_s.so.1 /usr/lib/
@@ -102,7 +107,6 @@ COPY --from=build-base /etc/ssl/ /etc/ssl/
 COPY --from=build-base /etc/passwd /etc/group /etc/
 
 COPY --from=unbound /opt/usr/sbin/ /usr/sbin/
-COPY --from=unbound /etc/unbound/unbound.conf /etc/unbound/unbound.conf.example
 
 COPY --from=ldns /opt/usr/bin/ /usr/bin/
 
