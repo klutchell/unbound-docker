@@ -92,7 +92,12 @@ RUN make -j"$(nproc)" && \
 	/opt/usr/sbin/unbound-control \
 	/opt/usr/sbin/unbound-host
 
-FROM scratch
+FROM scratch AS conf-example
+
+# docker build . --target conf-example --output rootfs_overlay/etc/unbound/
+COPY --from=unbound /etc/unbound/unbound.conf /unbound.conf.example
+
+FROM scratch AS final
 
 COPY --from=build-base /lib/ld-musl*.so.1 /lib/
 COPY --from=build-base /usr/lib/libgcc_s.so.1 /usr/lib/
@@ -102,7 +107,6 @@ COPY --from=build-base /etc/ssl/ /etc/ssl/
 COPY --from=build-base /etc/passwd /etc/group /etc/
 
 COPY --from=unbound /opt/usr/sbin/ /usr/sbin/
-COPY --from=unbound /etc/unbound/unbound.conf /etc/unbound/unbound.conf.example
 
 COPY --from=ldns /opt/usr/bin/ /usr/bin/
 
