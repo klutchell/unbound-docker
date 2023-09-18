@@ -14,7 +14,7 @@ on:
 jobs:
   flowzone:
     name: Flowzone
-    uses: product-os/flowzone/.github/workflows/flowzone.yml@e3535c016dcff1b7a8e18a742782493afe6a1bb0 # v5.7.29
+    uses: product-os/flowzone/.github/workflows/flowzone.yml@9337c5b771eb5c3382dfd55ab6e95aab677beedf # v5.7.30
     # prevent duplicate workflow executions for pull_request and pull_request_target
     if: |
       (
