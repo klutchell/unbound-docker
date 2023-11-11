@@ -12,9 +12,13 @@ RUN --mount=type=cache,id=apk-cache-${TARGETARCH},target=/var/cache/apk \
 	build-base \
 	ca-certificates-bundle \
 	libevent-dev \
+	libevent-static \
 	libsodium-dev \
+	libsodium-static \
 	openssl-dev \
-	expat-dev
+	openssl-libs-static \
+	expat-dev \
+	expat-static
 
 ARG UNBOUND_UID=101
 ARG UNBOUND_GID=102
@@ -38,14 +42,15 @@ SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 RUN echo "${LDNS_SHA256}  ldns.tar.gz" | sha256sum -c - \
 	&& tar -xzf ldns.tar.gz --strip-components=1
 
-RUN ./configure \
+RUN sed -e 's/@LDFLAGS@/@LDFLAGS@ -all-static/' -i Makefile.in && \
+	LIBS="-lpthread -lm" LDFLAGS="-Wl,-static -static -static-libgcc -no-pie" ./configure \
 	--prefix=/opt/usr \
 	--with-drill \
 	--localstatedir=/var \
 	--with-ssl \
 	--disable-rpath \
 	--disable-shared \
-	--disable-static \
+	--enable-fully-static \
 	--disable-ldns-config
 
 RUN make -j"$(nproc)" && \
@@ -70,11 +75,15 @@ RUN echo "${UNBOUND_SHA256}  unbound.tar.gz" | sha256sum -c - \
 	&& tar -xzf unbound.tar.gz --strip-components=1
 
 # https://unbound.docs.nlnetlabs.nl/en/latest/getting-started/installation.html#building-from-source-compiling
-RUN ./configure \
+RUN sed -e 's/@LDFLAGS@/@LDFLAGS@ -all-static/' -i Makefile.in && \
+	LIBS="-lpthread -lm" LDFLAGS="-Wl,-static -static -static-libgcc -no-pie" ./configure \
 	--prefix=/opt/usr \
 	--sysconfdir=/etc \
 	--localstatedir=/var \
-	--disable-static \
+	# --with-run-dir=/var/run/unbound \
+	# --with-chroot-dir= \
+	# --with-pidfile=/var/run/unbound/unbound.pid \
+	--enable-fully-static \
 	--disable-shared \
 	--disable-rpath \
 	--enable-dnscrypt \
@@ -83,6 +92,11 @@ RUN ./configure \
 	--with-libevent \
 	--with-ssl \
 	--with-username=unbound
+	# --disable-flto \
+	# --enable-event-api \
+	# --enable-tfo-client \
+	# --enable-tfo-server \
+	# --enable-ipset \
 
 RUN make -j"$(nproc)" && \
 	make install && \
@@ -99,10 +113,6 @@ COPY --from=unbound /etc/unbound/unbound.conf /unbound.conf.example
 
 FROM scratch AS final
 
-COPY --from=build-base /lib/ld-musl*.so.1 /lib/
-COPY --from=build-base /usr/lib/libgcc_s.so.1 /usr/lib/
-COPY --from=build-base /lib/libcrypto.so.3 /lib/libssl.so.3 /lib/
-COPY --from=build-base /usr/lib/libsodium.so.23 /usr/lib/libevent-2.1.so.7 /usr/lib/libexpat.so.1 /usr/lib/
 COPY --from=build-base /etc/ssl/ /etc/ssl/
 COPY --from=build-base /etc/passwd /etc/group /etc/
 
