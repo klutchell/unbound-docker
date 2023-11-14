@@ -110,7 +110,7 @@ COPY --from=unbound /opt/usr/sbin/ /usr/sbin/
 
 COPY --from=ldns /opt/usr/bin/ /usr/bin/
 
-COPY --chown=unbound:unbound rootfs_overlay/ /
+COPY --chown=unbound:unbound rootfs_overlay/etc/unbound/ /etc/unbound/
 
 # TODO: run as non-root on port 5053
 # USER unbound
