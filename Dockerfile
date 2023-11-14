@@ -95,10 +95,23 @@ RUN make -j"$(nproc)" && \
 	/opt/usr/sbin/unbound-control \
 	/opt/usr/sbin/unbound-host
 
+WORKDIR /var/unbound/
+
+# download root hints and generate initial root key
+# https://unbound.docs.nlnetlabs.nl/en/latest/manpages/unbound-anchor.html
+RUN wget -q https://www.internic.net/domain/named.root -O root.hints \
+	&& { /opt/usr/sbin/unbound-anchor -v -r root.hints 2>&1 || true ; } | tee -a /dev/stderr | grep -q "success: the anchor is ok"
+
 FROM scratch AS conf-example
 
 # docker build . --target conf-example --output rootfs_overlay/etc/unbound/
 COPY --from=unbound /etc/unbound/unbound.conf /unbound.conf.example
+
+FROM scratch as root-hints
+
+# docker build . --target root-hints --output rootfs_overlay/var/unbound/
+COPY --from=unbound /var/unbound/root.key /root.key
+COPY --from=unbound /var/unbound/root.hints /root.hints
 
 FROM scratch AS final
 
