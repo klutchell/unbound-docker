@@ -10,6 +10,8 @@ services:
     volumes:
       # enable send-client-subnet example configuration file
       - ./rootfs_overlay/etc/unbound/custom.conf.d/send-client-subnet.conf.example:/etc/unbound/custom.conf.d/send-client-subnet.conf:ro
+      # enable custom-port example configuration file
+      - ./rootfs_overlay/etc/unbound/custom.conf.d/custom-port.conf.example:/etc/unbound/custom.conf.d/custom-port.conf:ro
     command: -v -v
 
   sut:
@@ -44,15 +46,15 @@ services:
 
         sleep 5
 
-        docker exec $${server_id} drill @127.0.0.1 -p 53 dnssec.works | tee /dev/stderr | grep NOERROR
-        ! docker exec $${server_id} drill @127.0.0.1 -p 53 foo.local | tee /dev/stderr | grep NOERROR
-        ! docker exec $${server_id} drill @127.0.0.1 -p 53 bar.local | tee /dev/stderr | grep NOERROR
+        docker exec $${server_id} drill @127.0.0.1 -p 5353 dnssec.works | tee /dev/stderr | grep NOERROR
+        ! docker exec $${server_id} drill @127.0.0.1 -p 5353 foo.local | tee /dev/stderr | grep NOERROR
+        ! docker exec $${server_id} drill @127.0.0.1 -p 5353 bar.local | tee /dev/stderr | grep NOERROR
 
-        dig @server -p 53 dnssec.works +dnssec +multi | tee /dev/stderr | grep NOERROR
-        ! dig @server -p 53 fail01.dnssec.works +dnssec +multi | tee /dev/stderr | grep NOERROR
-        ! dig @server -p 53 fail02.dnssec.works +dnssec +multi | tee /dev/stderr | grep NOERROR
-        ! dig @server -p 53 fail03.dnssec.works +dnssec +multi | tee /dev/stderr | grep NOERROR
-        ! dig @server -p 53 fail04.dnssec.works +dnssec +multi | tee /dev/stderr | grep NOERROR
+        dig @server -p 5353 dnssec.works +dnssec +multi | tee /dev/stderr | grep NOERROR
+        ! dig @server -p 5353 fail01.dnssec.works +dnssec +multi | tee /dev/stderr | grep NOERROR
+        ! dig @server -p 5353 fail02.dnssec.works +dnssec +multi | tee /dev/stderr | grep NOERROR
+        ! dig @server -p 5353 fail03.dnssec.works +dnssec +multi | tee /dev/stderr | grep NOERROR
+        ! dig @server -p 5353 fail04.dnssec.works +dnssec +multi | tee /dev/stderr | grep NOERROR
 
         # test ECS
-        dig @server -p 53 TXT o-o.myaddr.l.google.com +short | tee /dev/stderr | grep edns0-client-subnet
+        dig @server -p 5353 TXT o-o.myaddr.l.google.com +short | tee /dev/stderr | grep edns0-client-subnet
