@@ -72,8 +72,11 @@ RUN echo "${UNBOUND_SHA256}  unbound.tar.gz" | sha256sum -c - \
 # https://unbound.docs.nlnetlabs.nl/en/latest/getting-started/installation.html#building-from-source-compiling
 RUN ./configure \
 	--prefix=/opt/usr \
-	--sysconfdir=/etc \
-	--localstatedir=/var \
+	--with-conf-file=/etc/unbound/unbound.conf \
+	--with-run-dir=/var/unbound \
+	--with-chroot-dir=/var/unbound \
+	--with-pidfile=/var/unbound/unbound.pid \
+	--with-rootkey-file=/var/unbound/root.key \
 	--disable-static \
 	--disable-shared \
 	--disable-rpath \
@@ -111,9 +114,7 @@ COPY --from=unbound /opt/usr/sbin/ /usr/sbin/
 COPY --from=ldns /opt/usr/bin/ /usr/bin/
 
 COPY --chown=unbound:unbound rootfs_overlay/etc/unbound/ /etc/unbound/
-
-# TODO: run as non-root on port 5053
-# USER unbound
+COPY --chown=unbound:unbound rootfs_overlay/var/unbound/ /var/unbound/
 
 RUN [ "unbound", "-V" ]
 # hadolint ignore=DL3059
