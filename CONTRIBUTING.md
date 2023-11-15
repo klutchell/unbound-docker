@@ -50,27 +50,20 @@ People _love_ thorough bug reports. I'm not even kidding.
 
 ## Building
 
-1. Optionally update root hints before building
-
-```bash
-rm rootfs_overlay/var/unbound/root.hints
-wget https://www.internic.net/domain/named.root -O rootfs_overlay/var/unbound/root.hints
-```
-
-2. Enable docker buildkit and experimental mode
+1. Enable docker buildkit and experimental mode
 
 ```bash
 export DOCKER_BUILDKIT=1
 export DOCKER_CLI_EXPERIMENTAL=enabled
 ```
 
-3. Build image for host architecture
+2. Build image for host architecture
 
 ```bash
 docker build . --tag klutchell/unbound:dev
 ```
 
-4. Optionally cross-build for another architecture
+3. Optionally cross-build for another architecture
 
 ```bash
 docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
@@ -127,6 +120,27 @@ docker build . --target conf-example --output rootfs_overlay/etc/unbound/
 4. Commit and push changes to `Dockerfile` and `unbound.conf.example`.
 
 [Here](https://github.com/klutchell/unbound-docker/pull/235) is an example pull request for reference.
+
+## Updating root.hints and root.key
+
+These files should be updated once a year or so to ensure they have the latest valid information.
+
+1. In your working copy, create a new branch if you haven't already.
+
+2. Enable docker buildkit and experimental mode
+
+```bash
+export DOCKER_BUILDKIT=1
+export DOCKER_CLI_EXPERIMENTAL=enabled
+```
+
+3. Run the following build command to generate new files.
+
+```bash
+docker build . --target root-hints --output rootfs_overlay/var/unbound/
+```
+
+4. Commit changes in `root_overlay/var/unbound/*` and open a pull request for review.
 
 ## License
 
