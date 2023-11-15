@@ -53,8 +53,8 @@ People _love_ thorough bug reports. I'm not even kidding.
 1. Optionally update root hints before building
 
 ```bash
-rm rootfs_overlay/etc/unbound/root.hints
-wget https://www.internic.net/domain/named.root -O rootfs_overlay/etc/unbound/root.hints
+rm rootfs_overlay/var/unbound/root.hints
+wget https://www.internic.net/domain/named.root -O rootfs_overlay/var/unbound/root.hints
 ```
 
 2. Enable docker buildkit and experimental mode
