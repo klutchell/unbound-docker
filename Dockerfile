@@ -19,8 +19,8 @@ RUN --mount=type=cache,id=apk-cache-${TARGETARCH},target=/var/cache/apk \
 ARG UNBOUND_UID=101
 ARG UNBOUND_GID=102
 
-RUN addgroup -g ${UNBOUND_GID} unbound \
-	&& adduser -u ${UNBOUND_UID} -D -H -G unbound unbound
+RUN addgroup -S -g ${UNBOUND_GID} unbound \
+	&& adduser -S -g unbound -h /var/unbound -u ${UNBOUND_UID} -D -H -G unbound unbound
 
 # hadolint ignore=DL3007
 FROM build-base AS ldns
