@@ -15,7 +15,7 @@ services:
     command: -v -v
 
   sut:
-    image: alpine:3.18@sha256:eece025e432126ce23f223450a0326fbebde39cdf496a85d8c016293fc851978
+    image: alpine:3.18@sha256:3a244917cd8d31893d88232d2201755fc9c884fde57a47d148f77edbcc8ad2a6
     depends_on:
       - server
     volumes:
