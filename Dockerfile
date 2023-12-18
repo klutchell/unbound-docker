@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.6@sha256:ac85f380a63b13dfcefa89046420e1781752bab202122f8f50032edf31be0021
 
-FROM alpine:3.18.5@sha256:34871e7290500828b39e22294660bee86d966bc0017544e848dd9a255cdf59e0 AS build-base
+FROM alpine:3.19.0@sha256:51b67269f354137895d43f3b3d810bfacd3945438e94dc5ac55fdac340352f48 AS build-base
 
 ARG TARGETARCH
 
@@ -118,7 +118,7 @@ FROM scratch AS final
 COPY --from=build-base /lib/ld-musl*.so.1 /lib/
 COPY --from=build-base /usr/lib/libgcc_s.so.1 /usr/lib/
 COPY --from=build-base /lib/libcrypto.so.3 /lib/libssl.so.3 /lib/
-COPY --from=build-base /usr/lib/libsodium.so.23 /usr/lib/libevent-2.1.so.7 /usr/lib/libexpat.so.1 /usr/lib/
+COPY --from=build-base /usr/lib/libsodium.so.* /usr/lib/libevent-2.1.so.* /usr/lib/libexpat.so.* /usr/lib/
 COPY --from=build-base /etc/ssl/ /etc/ssl/
 COPY --from=build-base /etc/passwd /etc/group /etc/
 
