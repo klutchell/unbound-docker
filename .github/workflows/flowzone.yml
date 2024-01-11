@@ -31,7 +31,6 @@ jobs:
       DOCKERHUB_USER: ${{ secrets.DOCKER_REGISTRY_USER }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKER_REGISTRY_PASS }}
     with:
-      protect_branch: false
       disable_versioning: true
       docker_images: |
         ghcr.io/klutchell/unbound,
