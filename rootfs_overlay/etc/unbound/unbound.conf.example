@@ -1,7 +1,7 @@
 #
 # Example configuration file.
 #
-# See unbound.conf(5) man page, version 1.19.0.
+# See unbound.conf(5) man page, version 1.19.1.
 #
 # this is a comment.
 
@@ -401,7 +401,7 @@ server:
 	# How to do this is specific to your OS.
 	#
 	# If you give "" no chroot is performed. The path must not end in a /.
-	# chroot: "/etc/unbound"
+	# chroot: "/var/unbound"
 
 	# if given, user privileges are dropped (after binding port),
 	# and the given username is assumed. Default is user "unbound".
@@ -413,7 +413,7 @@ server:
 	# is not changed.
 	# If you give a server: directory: dir before include: file statements
 	# then those includes can be relative to the working directory.
-	# directory: "/etc/unbound"
+	# directory: "/var/unbound"
 
 	# the log file, "" means log to stderr.
 	# Use of this option sets use-syslog to "no".
@@ -449,7 +449,7 @@ server:
 	# log-servfail: no
 
 	# the pid file. Can be an absolute path outside of chroot/work dir.
-	# pidfile: "/etc/unbound/unbound.pid"
+	# pidfile: "/var/unbound/unbound.pid"
 
 	# file to read root hints from.
 	# get one from https://www.internic.net/domain/named.cache
@@ -615,7 +615,7 @@ server:
 	# And then enable the auto-trust-anchor-file config item.
 	# Please note usage of unbound-anchor root anchor is at your own risk
 	# and under the terms of our LICENSE (see that file in the source).
-	# auto-trust-anchor-file: "/etc/unbound/root.key"
+	# auto-trust-anchor-file: "/var/unbound/root.key"
 
 	# trust anchor signaling sends a RFC8145 key tag query after priming.
 	# trust-anchor-signaling: yes
@@ -1056,7 +1056,7 @@ server:
 # o and give a python-script to run.
 python:
 	# Script file to load
-	# python-script: "/etc/unbound/ubmodule-tst.py"
+	# python-script: "/var/unbound/ubmodule-tst.py"
 
 # Dynamic library config section. To enable:
 # o use --with-dynlibmodule to configure before compiling.
@@ -1067,7 +1067,7 @@ python:
 #   the module-config then you need one dynlib-file per instance.
 dynlib:
 	# Script file to load
-	# dynlib-file: "/etc/unbound/dynlib.so"
+	# dynlib-file: "/var/unbound/dynlib.so"
 
 # Remote control config section.
 remote-control:
@@ -1090,16 +1090,16 @@ remote-control:
 	# control-use-cert: "yes"
 
 	# Unbound server key file.
-	# server-key-file: "/etc/unbound/unbound_server.key"
+	# server-key-file: "/var/unbound/unbound_server.key"
 
 	# Unbound server certificate file.
-	# server-cert-file: "/etc/unbound/unbound_server.pem"
+	# server-cert-file: "/var/unbound/unbound_server.pem"
 
 	# unbound-control key file.
-	# control-key-file: "/etc/unbound/unbound_control.key"
+	# control-key-file: "/var/unbound/unbound_control.key"
 
 	# unbound-control certificate file.
-	# control-cert-file: "/etc/unbound/unbound_control.pem"
+	# control-cert-file: "/var/unbound/unbound_control.pem"
 
 # Stub zones.
 # Create entries like below, to make all queries for 'example.com' and
