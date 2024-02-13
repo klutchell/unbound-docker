@@ -104,14 +104,16 @@ docker stop unbound
 1. In your working copy, create a new branch if you haven't already, and update the following fields in the [Dockerfile](Dockerfile) with the new version and hash.
 
 ```dockerfile
-ARG UNBOUND_VERSION=1.19.0
-# https://nlnetlabs.nl/downloads/unbound/unbound-1.19.0.tar.gz.sha256
+ARG UNBOUND_VERSION=1.19.1
+# https://nlnetlabs.nl/downloads/unbound/unbound-1.19.1.tar.gz.sha256
 ARG UNBOUND_SHA256="a97532468854c61c2de48ca4170de854fd3bc95c8043bb0cfb0fe26605966624"
 ```
 
 2. Run the following docker build command to copy the example config.
 
 ```bash
+export DOCKER_BUILDKIT=1
+export DOCKER_CLI_EXPERIMENTAL=enabled
 docker build . --target conf-example --output rootfs_overlay/etc/unbound/
 ```
 
@@ -127,18 +129,15 @@ These files should be updated once a year or so to ensure they have the latest v
 
 1. In your working copy, create a new branch if you haven't already.
 
-2. Enable docker buildkit and experimental mode
+2. Run the following build command to generate new files.
 
 ```bash
 export DOCKER_BUILDKIT=1
 export DOCKER_CLI_EXPERIMENTAL=enabled
-```
-
-3. Run the following build command to generate new files.
-
-```bash
 docker build . --target root-hints --output rootfs_overlay/var/unbound/
 ```
+
+3. [Build](#building) and [test](#testing) changes locally.
 
 4. Commit changes in `root_overlay/var/unbound/*` and open a pull request for review.
 
