@@ -35,3 +35,4 @@ jobs:
       docker_images: |
         ghcr.io/klutchell/unbound,
         klutchell/unbound
+      toggle_auto_merge: false
