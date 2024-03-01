@@ -46,9 +46,9 @@ services:
 
         sleep 5
 
-        docker exec $${server_id} drill @127.0.0.1 -p 5353 dnssec.works | tee /dev/stderr | grep NOERROR
-        ! docker exec $${server_id} drill @127.0.0.1 -p 5353 foo.local | tee /dev/stderr | grep NOERROR
-        ! docker exec $${server_id} drill @127.0.0.1 -p 5353 bar.local | tee /dev/stderr | grep NOERROR
+        docker exec $${server_id} drill -p 5353 dnssec.works @127.0.0.1 | tee /dev/stderr | grep NOERROR
+        ! docker exec $${server_id} drill -p 5353 foo.local @127.0.0.1 | tee /dev/stderr | grep NOERROR
+        ! docker exec $${server_id} drill -p 5353 bar.local @127.0.0.1 | tee /dev/stderr | grep NOERROR
 
         dig @server -p 5353 dnssec.works +dnssec +multi | tee /dev/stderr | grep NOERROR
         ! dig @server -p 5353 fail01.dnssec.works +dnssec +multi | tee /dev/stderr | grep NOERROR
