@@ -1,2 +1,3 @@
 server:
-    interface: 0.0.0.0@5353
+    port: 5353
+    verbosity: 2
