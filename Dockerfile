@@ -14,7 +14,7 @@ RUN --mount=type=cache,id=apk-cache-${TARGETARCH},target=/var/cache/apk \
 	libevent-dev \
 	libsodium-dev \
 	openssl-dev \
-    hiredis-dev \
+	hiredis-dev \
 	expat-dev
 
 ARG UNBOUND_UID=101
@@ -85,7 +85,7 @@ RUN ./configure \
 	--enable-subnet \
 	--with-pthreads \
 	--with-libevent \
-    --with-libhiredis \
+	--with-libhiredis \
 	--with-ssl \
 	--with-username=unbound
 
