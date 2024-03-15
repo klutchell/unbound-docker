@@ -29,6 +29,23 @@ docker run --name unbound \
   klutchell/unbound
 ```
 
+## Optional: Enable CacheDB Module with Redis backend
+
+The cache DB module was compiled into daemon, but is disabled by default. To enable this module, follow this steps:
+* Modify [unbound.conf](https://unbound.docs.nlnetlabs.nl/en/latest/manpages/unbound.conf.html#cache-db-module-options) to add the following directive:
+ > module-config: "validator cachedb iterator"
+
+* Create a `cachedb.conf` under your custom configuration directory `/path/to/config/custom.conf.d` with Redis credentials:
+
+```bash
+cachedb:
+  backend: "redis"
+  redis-server-host: redis
+  redis-server-port: 6379
+  redis-expire-records: yes
+```
+Files must be readable by user/group `101:102` or world.
+
 Examples of docker-compose usage can be found in [examples](examples).
 
 ## License
