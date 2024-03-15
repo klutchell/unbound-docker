@@ -1,0 +1,5 @@
+cachedb:
+  backend: "redis"
+  redis-server-host: redis
+  redis-server-port: 6379
+  redis-expire-records: yes
