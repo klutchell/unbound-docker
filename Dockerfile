@@ -83,7 +83,7 @@ RUN ./configure \
 	--disable-rpath \
 	--enable-dnscrypt \
 	--enable-subnet \
-    --enable-cachedb \
+	--enable-cachedb \
 	--with-pthreads \
 	--with-libevent \
 	--with-libhiredis \
