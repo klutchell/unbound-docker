@@ -29,7 +29,7 @@ docker run --name unbound \
   klutchell/unbound
 ```
 
-## Optional: Enable CacheDB Module with Redis backend
+### Optional: Enable CacheDB Module with Redis backend
 
 The cache DB module was compiled into daemon, but is disabled by default. To enable this module, follow this steps:
 * Modify [unbound.conf](https://unbound.docs.nlnetlabs.nl/en/latest/manpages/unbound.conf.html#cache-db-module-options) to add the following directive:
