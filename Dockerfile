@@ -60,7 +60,7 @@ FROM build-base AS unbound
 WORKDIR /src
 
 ARG UNBOUND_VERSION=1.19.3
-# https://nlnetlabs.nl/downloads/unbound/unbound-1.19.2.tar.gz.sha256
+# https://nlnetlabs.nl/downloads/unbound/unbound-1.19.3.tar.gz.sha256
 ARG UNBOUND_SHA256="3ae322be7dc2f831603e4b0391435533ad5861c2322e34a76006a9fb65eb56b9"
 
 ADD https://nlnetlabs.nl/downloads/unbound/unbound-${UNBOUND_VERSION}.tar.gz unbound.tar.gz
@@ -83,6 +83,7 @@ RUN ./configure \
 	--disable-rpath \
 	--enable-dnscrypt \
 	--enable-subnet \
+	--enable-cachedb \
 	--with-pthreads \
 	--with-libevent \
 	--with-libhiredis \
