@@ -14,7 +14,7 @@ on:
 jobs:
   flowzone:
     name: Flowzone
-    uses: product-os/flowzone/.github/workflows/flowzone.yml@aeff53d5e6100cd765ccacf33f63b9f12968e038 # v12.0.6
+    uses: klutchell/flowzone-test-fork/.github/workflows/flowzone.yml@kyle/setup-docker
     # prevent duplicate workflow executions for pull_request and pull_request_target
     if: |
       (
@@ -36,3 +36,10 @@ jobs:
         ghcr.io/klutchell/unbound,
         klutchell/unbound
       toggle_auto_merge: false
+      docker_runs_on: >
+        {
+          "linux/amd64": ["cirun-aws-runner--amd64--${{ github.run_id }}"],
+          "linux/arm64": ["cirun-aws-arm-runner--arm64--${{ github.run_id }}"],
+          "linux/arm/v7": ["cirun-aws-arm-runner--arm32v7--${{ github.run_id }}"],
+          "linux/arm/v6": ["cirun-aws-arm-runner--arm32v6--${{ github.run_id }}"]
+        }

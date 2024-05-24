@@ -1,0 +1,47 @@
+# Self-Hosted Github Action Runners on AWS via Cirun.io
+# Reference: https://docs.cirun.io/reference/yaml
+runners:
+  - name: "aws-jammy-amd64-runner"
+    cloud: "aws"
+    region: us-east-1
+    instance_type: "t2.nano"
+    # ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-20240411
+    machine_image: "ami-0e001c9271cf7f3b9"
+    preemptible: true
+    labels:
+      - "cirun-aws-runner"
+      - "cirun-aws-amd64-runner"
+      - "cirun-aws-jammy-runner"
+      - "cirun-aws-jammy-amd64-runner"
+
+  - name: "aws-jammy-arm64-runner"
+    cloud: "aws"
+    region: us-east-1
+    instance_type: "a1.nano"
+    # ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-arm64-server-20240411
+    machine_image: "ami-058b428b3b45defec"
+    preemptible: true
+    labels:
+      - "cirun-aws-arm64-runner"
+      - "cirun-aws-jammy-arm64-runner"
+
+  - name: "aws-focal-amd64-runner"
+    cloud: "aws"
+    region: us-east-1
+    instance_type: "t2.nano"
+    # ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-20220810
+    machine_image: "ami-0cf6c10214cc015c9"
+    preemptible: true
+    labels:
+      - "cirun-aws-focal-runner"
+      - "cirun-aws-focal-amd64-runner"
+
+  - name: "aws-focal-arm64-runner"
+    cloud: "aws"
+    region: us-east-1
+    instance_type: "a1.nano"
+    # ubuntu/images/hvm-ssd/ubuntu-focal-20.04-arm64-server-20230502
+    machine_image: "ami-07cd31309bf4e22f9"
+    preemptible: true
+    labels:
+      - "cirun-aws-focal-arm64-runner"
