@@ -70,6 +70,10 @@ docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 docker build . --tag klutchell/unbound:dev --platform linux/arm/v6
 ```
 
+> [!NOTE]
+> Outgoing port 53 must not be blocked on the network where the build is running
+> in order to generate initial root keys with unbound-anchor!
+
 ## Testing
 
 1. Run a detached unbound container
@@ -81,16 +85,16 @@ docker run --rm -d --name unbound klutchell/unbound:dev
 2. Run drill with DNSSEC to test NOERROR
 
 ```bash
-docker exec unbound drill @127.0.0.1 dnssec.works +dnssec +multi
+docker exec unbound drill @127.0.0.1 dnssec.works
 ```
 
 3. Run drill with dnssec to test SERVFAIL
 
 ```bash
-docker exec unbound drill @127.0.0.1 fail01.dnssec.works +dnssec +multi
-docker exec unbound drill @127.0.0.1 fail02.dnssec.works +dnssec +multi
-docker exec unbound drill @127.0.0.1 fail03.dnssec.works +dnssec +multi
-docker exec unbound drill @127.0.0.1 fail04.dnssec.works +dnssec +multi
+docker exec unbound drill @127.0.0.1 fail01.dnssec.works
+docker exec unbound drill @127.0.0.1 fail02.dnssec.works
+docker exec unbound drill @127.0.0.1 fail03.dnssec.works
+docker exec unbound drill @127.0.0.1 fail04.dnssec.works
 ```
 
 4. Stop and remove the test container
@@ -122,24 +126,6 @@ docker build . --target conf-example --output rootfs_overlay/etc/unbound/
 4. Commit and push changes to `Dockerfile` and `unbound.conf.example`.
 
 [Here](https://github.com/klutchell/unbound-docker/pull/235) is an example pull request for reference.
-
-## Updating root.hints and root.key
-
-These files should be updated once a year or so to ensure they have the latest valid information.
-
-1. In your working copy, create a new branch if you haven't already.
-
-2. Run the following build command to generate new files.
-
-```bash
-export DOCKER_BUILDKIT=1
-export DOCKER_CLI_EXPERIMENTAL=enabled
-docker build . --target root-hints --output rootfs_overlay/var/unbound/
-```
-
-3. [Build](#building) and [test](#testing) changes locally.
-
-4. Commit changes in `root_overlay/var/unbound/*` and open a pull request for review.
 
 ## License
 
