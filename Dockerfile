@@ -23,7 +23,8 @@ ARG UNBOUND_GID=102
 RUN addgroup -S -g ${UNBOUND_GID} unbound \
 	&& adduser -S -g unbound -h /var/unbound -u ${UNBOUND_UID} -D -H -G unbound unbound
 
-# hadolint ignore=DL3007
+####################################################################################################
+
 FROM build-base AS ldns
 
 WORKDIR /src
@@ -54,7 +55,8 @@ RUN make -j"$(nproc)" && \
 	strip /opt/usr/bin/drill && \
 	ln -s drill /opt/usr/bin/dig
 
-# hadolint ignore=DL3007
+####################################################################################################
+
 FROM build-base AS unbound
 
 WORKDIR /src
@@ -98,23 +100,40 @@ RUN make -j"$(nproc)" && \
 	/opt/usr/sbin/unbound-control \
 	/opt/usr/sbin/unbound-host
 
-WORKDIR /var/unbound/
+WORKDIR /var/unbound
 
-# download root hints and generate initial root key
-# https://unbound.docs.nlnetlabs.nl/en/latest/manpages/unbound-anchor.html
-RUN wget -q https://www.internic.net/domain/named.root -O root.hints \
-	&& { /opt/usr/sbin/unbound-anchor -v -r root.hints 2>&1 || true ; } | tee -a /dev/stderr | grep -q "success: the anchor is ok"
+####################################################################################################
 
 FROM scratch AS conf-example
 
 # docker build . --target conf-example --output rootfs_overlay/etc/unbound/
 COPY --from=unbound /etc/unbound/unbound.conf /unbound.conf.example
 
-FROM scratch as root-hints
+####################################################################################################
 
-# docker build . --target root-hints --output rootfs_overlay/var/unbound/
-COPY --from=unbound /var/unbound/root.key /root.key
-COPY --from=unbound /var/unbound/root.hints /root.hints
+FROM build-base AS root-hints
+
+# https://unbound.docs.nlnetlabs.nl/en/latest/manpages/unbound-anchor.html
+RUN wget -q https://www.internic.net/domain/named.root -O /root.hints
+
+####################################################################################################
+
+FROM unbound AS root-key
+
+WORKDIR /var/unbound
+
+SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
+
+COPY --from=root-hints /root.hints .
+
+# Generate initial root key with the provided root hints.
+# https://unbound.docs.nlnetlabs.nl/en/latest/manpages/unbound-anchor.html
+# This tool exits with value 1 if the root anchor was updated using the certificate or
+# if the builtin root-anchor was used. It exits with code 0 if no update was necessary,
+# if the update was possible with RFC 5011 tracking, or if an error occurred.
+RUN { /opt/usr/sbin/unbound-anchor -v -r root.hints -a root.key || true ; } | tee -a /dev/stderr | grep -q "success: the anchor is ok"
+
+####################################################################################################
 
 FROM scratch AS final
 
@@ -130,7 +149,9 @@ COPY --from=unbound /opt/usr/sbin/ /usr/sbin/
 COPY --from=ldns /opt/usr/bin/ /usr/bin/
 
 COPY --chown=unbound:unbound rootfs_overlay/etc/unbound/ /etc/unbound/
-COPY --chown=unbound:unbound rootfs_overlay/var/unbound/ /var/unbound/
+
+COPY --from=root-key --chown=unbound:unbound /var/unbound/root.hints /var/unbound/root.hints
+COPY --from=root-key --chown=unbound:unbound /var/unbound/root.key /var/unbound/root.key
 
 RUN [ "unbound", "-V" ]
 # hadolint ignore=DL3059
