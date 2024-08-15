@@ -1,7 +1,7 @@
 #
 # Example configuration file.
 #
-# See unbound.conf(5) man page, version @version@.
+# See unbound.conf(5) man page, version 1.21.0.
 #
 # this is a comment.
 
@@ -228,7 +228,7 @@ server:
 
 	# the time to live (TTL) value lower bound, in seconds. Default 0.
 	# For negative responses in the cache. If disabled, default,
-	# cache-min-tll applies if configured.
+	# cache-min-ttl applies if configured.
 	# cache-min-negative-ttl: 0
 
 	# the time to live (TTL) value for cached roundtrip times, lameness and
@@ -423,19 +423,19 @@ server:
 	# How to do this is specific to your OS.
 	#
 	# If you give "" no chroot is performed. The path must not end in a /.
-	# chroot: "@UNBOUND_CHROOT_DIR@"
+	# chroot: "/var/unbound"
 
 	# if given, user privileges are dropped (after binding port),
 	# and the given username is assumed. Default is user "unbound".
 	# If you give "" no privileges are dropped.
-	# username: "@UNBOUND_USERNAME@"
+	# username: "unbound"
 
 	# the working directory. The relative files in this config are
 	# relative to this directory. If you give "" the working directory
 	# is not changed.
 	# If you give a server: directory: dir before include: file statements
 	# then those includes can be relative to the working directory.
-	# directory: "@UNBOUND_RUN_DIR@"
+	# directory: "/var/unbound"
 
 	# the log file, "" means log to stderr.
 	# Use of this option sets use-syslog to "no".
@@ -474,7 +474,7 @@ server:
 	# log-servfail: no
 
 	# the pid file. Can be an absolute path outside of chroot/work dir.
-	# pidfile: "@UNBOUND_PIDFILE@"
+	# pidfile: "/var/unbound/unbound.pid"
 
 	# file to read root hints from.
 	# get one from https://www.internic.net/domain/named.cache
@@ -640,7 +640,7 @@ server:
 	# And then enable the auto-trust-anchor-file config item.
 	# Please note usage of unbound-anchor root anchor is at your own risk
 	# and under the terms of our LICENSE (see that file in the source).
-	# auto-trust-anchor-file: "@UNBOUND_ROOTKEY_FILE@"
+	# auto-trust-anchor-file: "/var/unbound/root.key"
 
 	# trust anchor signaling sends a RFC8145 key tag query after priming.
 	# trust-anchor-signaling: yes
@@ -1044,6 +1044,11 @@ server:
 	# example value "000102030405060708090a0b0c0d0e0f".
 	# cookie-secret: <128 bit random hex string>
 
+	# File with cookie secrets, the 'cookie-secret:' option is ignored
+	# and the file can be managed to have staging and active secrets
+	# with remote control commands. Disabled with "". Default is "".
+	# cookie-secret-file: "/usr/local/etc/unbound_cookiesecrets.txt"
+
 	# Enable to attach Extended DNS Error codes (RFC8914) to responses.
 	# ede: no
 
@@ -1096,7 +1101,7 @@ server:
 # o and give a python-script to run.
 python:
 	# Script file to load
-	# python-script: "@UNBOUND_SHARE_DIR@/ubmodule-tst.py"
+	# python-script: "/var/unbound/ubmodule-tst.py"
 
 # Dynamic library config section. To enable:
 # o use --with-dynlibmodule to configure before compiling.
@@ -1107,7 +1112,7 @@ python:
 #   the module-config then you need one dynlib-file per instance.
 dynlib:
 	# Script file to load
-	# dynlib-file: "@UNBOUND_SHARE_DIR@/dynlib.so"
+	# dynlib-file: "/var/unbound/dynlib.so"
 
 # Remote control config section.
 remote-control:
@@ -1130,16 +1135,16 @@ remote-control:
 	# control-use-cert: "yes"
 
 	# Unbound server key file.
-	# server-key-file: "@UNBOUND_RUN_DIR@/unbound_server.key"
+	# server-key-file: "/var/unbound/unbound_server.key"
 
 	# Unbound server certificate file.
-	# server-cert-file: "@UNBOUND_RUN_DIR@/unbound_server.pem"
+	# server-cert-file: "/var/unbound/unbound_server.pem"
 
 	# unbound-control key file.
-	# control-key-file: "@UNBOUND_RUN_DIR@/unbound_control.key"
+	# control-key-file: "/var/unbound/unbound_control.key"
 
 	# unbound-control certificate file.
-	# control-cert-file: "@UNBOUND_RUN_DIR@/unbound_control.pem"
+	# control-cert-file: "/var/unbound/unbound_control.pem"
 
 # Stub zones.
 # Create entries like below, to make all queries for 'example.com' and
@@ -1309,7 +1314,7 @@ remote-control:
 # 	dnstap-enable: no
 # 	# if set to yes frame streams will be used in bidirectional mode
 # 	dnstap-bidirectional: yes
-# 	dnstap-socket-path: "@DNSTAP_SOCKET_PATH@"
+# 	dnstap-socket-path: ""
 # 	# if "" use the unix socket in dnstap-socket-path, otherwise,
 # 	# set it to "IPaddress[@port]" of the destination.
 # 	dnstap-ip: ""
@@ -1329,6 +1334,8 @@ remote-control:
 # 	dnstap-identity: ""
 # 	# if "" it uses the package version.
 # 	dnstap-version: ""
+# 	# log only 1/N messages, if 0 it is disabled. default 0.
+# 	dnstap-sample-rate: 0
 # 	dnstap-log-resolver-query-messages: no
 # 	dnstap-log-resolver-response-messages: no
 # 	dnstap-log-client-query-messages: no
@@ -1337,7 +1344,8 @@ remote-control:
 # 	dnstap-log-forwarder-response-messages: no
 
 # Response Policy Zones
-# RPZ policies. Applied in order of configuration. QNAME, Response IP
+# RPZ policies. Applied in order of configuration. Any match from an earlier
+# RPZ zone will terminate the RPZ lookup. QNAME, Response IP
 # Address, nsdname, nsip and clientip triggers are supported. Supported
 # actions are: NXDOMAIN, NODATA, PASSTHRU, DROP, Local Data, tcp-only
 # and drop.  Policies can be loaded from a file, or using zone
