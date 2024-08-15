@@ -1,0 +1,3 @@
+remote-control:
+	control-enable: yes
+	control-use-cert: no

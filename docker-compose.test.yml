@@ -12,6 +12,8 @@ services:
       - ./rootfs_overlay/etc/unbound/custom.conf.d/send-client-subnet.conf.example:/etc/unbound/custom.conf.d/send-client-subnet.conf:ro
       # enable custom-port example configuration file
       - ./rootfs_overlay/etc/unbound/custom.conf.d/custom-port.conf.example:/etc/unbound/custom.conf.d/custom-port.conf:ro
+      # enable remote-control example configuration file
+      - ./rootfs_overlay/etc/unbound/custom.conf.d/remote-control.conf.example:/etc/unbound/custom.conf.d/remote-control.conf:ro
     command: -v -v
 
   sut:
