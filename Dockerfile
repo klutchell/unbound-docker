@@ -86,6 +86,8 @@ RUN ./configure \
 	--enable-dnscrypt \
 	--enable-subnet \
 	--enable-cachedb \
+	--enable-tfo-server \
+	--enable-tfo-client \
 	--with-pthreads \
 	--with-libevent \
 	--with-libhiredis \
