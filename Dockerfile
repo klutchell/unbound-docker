@@ -29,9 +29,9 @@ FROM build-base AS ldns
 
 WORKDIR /src
 
-ARG LDNS_VERSION=1.8.3
-# https://nlnetlabs.nl/downloads/ldns/ldns-1.8.3.tar.gz.sha256
-ARG LDNS_SHA256="c3f72dd1036b2907e3a56e6acf9dfb2e551256b3c1bbd9787942deeeb70e7860"
+ARG LDNS_VERSION=1.8.4
+# https://nlnetlabs.nl/downloads/ldns/ldns-1.8.4.tar.gz.sha256
+ARG LDNS_SHA256="838b907594baaff1cd767e95466a7745998ae64bc74be038dccc62e2de2e4247"
 
 ADD https://nlnetlabs.nl/downloads/ldns/ldns-${LDNS_VERSION}.tar.gz ldns.tar.gz
 
