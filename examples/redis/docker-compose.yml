@@ -1,0 +1,31 @@
+volumes:
+  redis:
+
+services:
+  redis:
+    image: redis:latest
+    container_name: redis
+    hostname: redis
+    restart: unless-stopped
+    volumes:
+      - redis:/data
+    healthcheck:
+      test: "[ $$(redis-cli ping) = 'PONG' ]"
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+
+  unbound:
+    image: klutchell/unbound
+    healthcheck:
+      test: ["CMD", "drill", "@127.0.0.1", "dnssec.works"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 30s
+    volumes:
+      - ./custom.conf.d:/etc/unbound/custom.conf.d:ro
+    restart: unless-stopped
+    depends_on:
+      - redis
