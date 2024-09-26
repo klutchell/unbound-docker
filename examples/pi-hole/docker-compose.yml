@@ -29,7 +29,7 @@ services:
       default:
         ipv4_address: 172.28.0.2
     healthcheck:
-      test: ["CMD", "drill", "@127.0.0.1", "dnssec.works"]
+      test: ["CMD", "drill", "@127.0.0.1", "dnssec.works", "||", "exit", "1"]
       interval: 30s
       timeout: 30s
       retries: 3
