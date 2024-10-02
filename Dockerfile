@@ -159,7 +159,7 @@ COPY --from=root-key --chown=unbound:unbound /var/unbound/root.key /var/unbound/
 
 RUN [ "unbound", "-V" ]
 # hadolint ignore=DL3059
-RUN [ "unbound-checkconf" ]	
+RUN [ "unbound-checkconf" ]
 # hadolint ignore=DL3059
 RUN [ "drill", "-v" ]
 # hadolint ignore=DL3059
