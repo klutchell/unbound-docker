@@ -1,7 +1,3 @@
 {
-  "extends": [
-    "config:recommended",
-    "customManagers:dockerfileVersions",
-    "customManagers:githubActionsVersions"
-  ]
+  "extends": ["github>klutchell/renovate-config"]
 }
