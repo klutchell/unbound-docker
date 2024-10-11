@@ -139,6 +139,21 @@ RUN { /opt/usr/sbin/unbound-anchor -v -r root.hints -a root.key || true ; } | te
 
 ####################################################################################################
 
+FROM rust:1.76-alpine AS rust-builder
+
+WORKDIR /usr/src/drillrs
+
+# Copy drill-wrapper source code
+COPY drillrs/ ./
+
+# Build the binary
+RUN cargo build --release
+
+# hadolint ignore=DL3059
+RUN mv target/release/drillrs /usr/local/bin/drillrs
+
+####################################################################################################
+
 FROM scratch AS final
 
 COPY --from=build-base /lib/ld-musl*.so.1 /lib/
@@ -151,6 +166,9 @@ COPY --from=build-base /etc/passwd /etc/group /etc/
 COPY --from=unbound /opt/usr/sbin/ /usr/sbin/
 
 COPY --from=ldns /opt/usr/bin/ /usr/bin/
+
+# Copy the Rust binary from the rust-builder stage
+COPY --from=rust-builder /usr/local/bin/drillrs /usr/local/bin/drillrs
 
 COPY --chown=unbound:unbound rootfs_overlay/etc/unbound/ /etc/unbound/
 
