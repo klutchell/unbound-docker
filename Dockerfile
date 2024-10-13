@@ -139,6 +139,19 @@ RUN { /opt/usr/sbin/unbound-anchor -v -r root.hints -a root.key || true ; } | te
 
 ####################################################################################################
 
+FROM build-base AS drill-hc
+
+# Set the working directory
+WORKDIR /src
+
+# Copy the source file
+COPY drill-hc/main.c .
+
+# Compile the program statically
+RUN gcc -static -O3 -o drill-hc main.c
+
+####################################################################################################
+
 FROM scratch AS final
 
 COPY --from=build-base /lib/ld-musl*.so.1 /lib/
@@ -151,6 +164,8 @@ COPY --from=build-base /etc/passwd /etc/group /etc/
 COPY --from=unbound /opt/usr/sbin/ /usr/sbin/
 
 COPY --from=ldns /opt/usr/bin/ /usr/bin/
+
+COPY --from=drill-hc /src/drill-hc /usr/bin/drill-hc
 
 COPY --chown=unbound:unbound rootfs_overlay/etc/unbound/ /etc/unbound/
 
