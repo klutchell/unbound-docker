@@ -7,18 +7,18 @@ services:
     container_name: pihole
     image: pihole/pihole:latest
     ports:
-      - "53:53/tcp"
-      - "53:53/udp"
-      - "67:67/udp"
-      - "80:80/tcp"
+      - '53:53/tcp'
+      - '53:53/udp'
+      - '67:67/udp'
+      - '80:80/tcp'
     networks:
       default:
         ipv4_address: 172.28.0.3
     environment:
-      PIHOLE_DNS_: "172.28.0.2;172.28.0.2"
+      PIHOLE_DNS_: '172.28.0.2;172.28.0.2'
     volumes:
-      - "pihole:/etc/pihole"
-      - "dnsmasq:/etc/dnsmasq.d"
+      - 'pihole:/etc/pihole'
+      - 'dnsmasq:/etc/dnsmasq.d'
     cap_add:
       - NET_ADMIN
     restart: unless-stopped
@@ -29,7 +29,8 @@ services:
       default:
         ipv4_address: 172.28.0.2
     healthcheck:
-      test: ["CMD", "drill", "@127.0.0.1", "dnssec.works"]
+      # Use the drill wrapper binary to reduce the exit codes to 0 or 1 for healthchecks
+      test: ['CMD', 'drill-hc', '@127.0.0.1', 'dnssec.works']
       interval: 30s
       timeout: 30s
       retries: 3

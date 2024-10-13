@@ -139,6 +139,24 @@ RUN { /opt/usr/sbin/unbound-anchor -v -r root.hints -a root.key || true ; } | te
 
 ####################################################################################################
 
+# This is a minimal C wrapper for drill to avoid the need for a shell
+# and reduce the exit code to 0 or 1.
+# Dockerfile reference says that health checks should always return 0 or 1.
+# Any other status code is reserved.
+# See https://docs.docker.com/reference/dockerfile/#healthcheck
+FROM build-base AS drill-hc
+
+# Set the working directory
+WORKDIR /src
+
+# Copy the source file
+COPY drill-hc/main.c .
+
+# Compile the program statically
+RUN gcc -Wall -Wextra -pedantic -std=c2x -static -O3 -o drill-hc main.c
+
+####################################################################################################
+
 FROM scratch AS final
 
 COPY --from=build-base /lib/ld-musl*.so.1 /lib/
@@ -151,6 +169,8 @@ COPY --from=build-base /etc/passwd /etc/group /etc/
 COPY --from=unbound /opt/usr/sbin/ /usr/sbin/
 
 COPY --from=ldns /opt/usr/bin/ /usr/bin/
+
+COPY --from=drill-hc /src/drill-hc /usr/bin/drill-hc
 
 COPY --chown=unbound:unbound rootfs_overlay/etc/unbound/ /etc/unbound/
 
