@@ -62,9 +62,9 @@ FROM build-base AS unbound
 
 WORKDIR /src
 
-ARG UNBOUND_VERSION=1.21.1
-# https://nlnetlabs.nl/downloads/unbound/unbound-1.21.1.tar.gz.sha256
-ARG UNBOUND_SHA256="3036d23c23622b36d3c87e943117bdec1ac8f819636eb978d806416b0fa9ea46"
+ARG UNBOUND_VERSION=1.22.0
+# https://nlnetlabs.nl/downloads/unbound/unbound-1.22.0.tar.gz.sha256
+ARG UNBOUND_SHA256="c5dd1bdef5d5685b2cedb749158dd152c52d44f65529a34ac15cd88d4b1b3d43"
 
 ADD https://nlnetlabs.nl/downloads/unbound/unbound-${UNBOUND_VERSION}.tar.gz unbound.tar.gz
 
