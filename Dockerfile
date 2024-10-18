@@ -148,7 +148,7 @@ WORKDIR /src
 COPY drill-hc/main.c .
 
 # Compile the program statically
-RUN gcc -static -O3 -o drill-hc main.c
+RUN gcc -Wall -Wextra -pedantic -std=c2x -static -O3 -o drill-hc main.c
 
 ####################################################################################################
 
