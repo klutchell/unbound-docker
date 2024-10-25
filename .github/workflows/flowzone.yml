@@ -36,3 +36,4 @@ jobs:
         ghcr.io/klutchell/unbound,
         klutchell/unbound
       toggle_auto_merge: false
+      restrict_custom_actions: false
