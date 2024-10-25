@@ -9,25 +9,23 @@ services:
     ports:
       - '53:53/tcp'
       - '53:53/udp'
-      - '67:67/udp'
+      - '67:67/udp' # Required if you are using Pihole as your DHCP server
       - '80:80/tcp'
     networks:
-      default:
-        ipv4_address: 172.28.0.3
+      - default
     environment:
-      PIHOLE_DNS_: '172.28.0.2;172.28.0.2'
+      PIHOLE_DNS_: unbound
     volumes:
       - 'pihole:/etc/pihole'
       - 'dnsmasq:/etc/dnsmasq.d'
     cap_add:
-      - NET_ADMIN
+      - NET_ADMIN # Required if you are using Pi-hole as your DHCP server
     restart: unless-stopped
 
   unbound:
     image: klutchell/unbound
     networks:
-      default:
-        ipv4_address: 172.28.0.2
+      - default
     healthcheck:
       # Use the drill wrapper binary to reduce the exit codes to 0 or 1 for healthchecks
       test: ['CMD', 'drill-hc', '@127.0.0.1', 'dnssec.works']
@@ -37,11 +35,8 @@ services:
       start_period: 30s
     volumes:
       - /path/to/config:/etc/unbound/custom.conf.d
+    restart: unless-stopped
 
 networks:
   default:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.28.0.0/24
-          gateway: 172.28.0.1
