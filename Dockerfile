@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.12@sha256:93bfd3b68c109427185cd78b4779fc82b484b0b7618e36d0f104d4d801e66d25
 
-FROM alpine:3.20.5@sha256:31687a2fdd021f85955bf2d0c2682e9c0949827560e1db546358ea094f740f12 AS build-base
+FROM alpine:3.21.2@sha256:56fa17d2a7e7f168a043a2712e63aed1f8543aeafdcee47c58dcffe38ed51099 AS build-base
 
 ARG TARGETARCH
 
