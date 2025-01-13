@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.12@sha256:93bfd3b68c109427185cd78b4779fc82b484b0b7618e36d0f104d4d801e66d25
 
-FROM alpine:3.20.5@sha256:31687a2fdd021f85955bf2d0c2682e9c0949827560e1db546358ea094f740f12 AS build-base
+FROM alpine:3.21.2@sha256:56fa17d2a7e7f168a043a2712e63aed1f8543aeafdcee47c58dcffe38ed51099 AS build-base
 
 ARG TARGETARCH
 
@@ -17,6 +17,8 @@ RUN --mount=type=cache,id=apk-cache-${TARGETARCH},target=/var/cache/apk \
 	openssl-dev \
 	hiredis-dev \
 	expat-dev
+
+RUN find / -name "libcrypto.so*" -exec ls -al {} \;
 
 ARG UNBOUND_UID=101
 ARG UNBOUND_GID=102
@@ -161,7 +163,7 @@ FROM scratch AS final
 
 COPY --from=build-base /lib/ld-musl*.so.1 /lib/
 COPY --from=build-base /usr/lib/libgcc_s.so.1 /usr/lib/
-COPY --from=build-base /lib/libcrypto.so.3 /lib/libssl.so.3 /lib/
+COPY --from=build-base /usr/lib/libcrypto.so.3 /usr/lib/libssl.so.3 /usr/lib/
 COPY --from=build-base /usr/lib/libsodium.so.* /usr/lib/libevent-2.1.so.* /usr/lib/libexpat.so.* /usr/lib/libhiredis.so.* /usr/lib/libnghttp2.so.* /usr/lib/
 COPY --from=build-base /etc/ssl/ /etc/ssl/
 COPY --from=build-base /etc/passwd /etc/group /etc/
