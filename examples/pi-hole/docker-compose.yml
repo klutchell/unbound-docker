@@ -1,6 +1,5 @@
 volumes:
   pihole:
-  dnsmasq:
 
 services:
   pihole:
@@ -11,13 +10,19 @@ services:
       - '53:53/udp'
       - '67:67/udp' # Required if you are using Pihole as your DHCP server
       - '80:80/tcp'
+      - '443:443/tcp' # FTL will generate a self-signed certificate. Not required to use
     networks:
       - default
     environment:
-      PIHOLE_DNS_: unbound
+      # Sets upstream DNS to unbound sibling container
+      FTLCONF_dns_upstreams: unbound
+      # Set the appropriate timezone for your location
+      # See https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+      # e.g. Europe/Paris, US/Pacific, Asia/Tokyo
+      TZ: 'Etc/UTC'
+      # See https://github.com/pi-hole/docker-pi-hole for all options
     volumes:
       - 'pihole:/etc/pihole'
-      - 'dnsmasq:/etc/dnsmasq.d'
     cap_add:
       - NET_ADMIN # Required if you are using Pi-hole as your DHCP server
     restart: unless-stopped
