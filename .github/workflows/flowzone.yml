@@ -27,7 +27,7 @@ jobs:
         github.event_name == 'push'
       )
     secrets:
-      FLOWZONE_TOKEN: ${{ secrets.FLOWZONE_TOKEN }}
+      GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
       DOCKERHUB_USER: ${{ secrets.DOCKER_REGISTRY_USER }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKER_REGISTRY_PASS }}
     with:
@@ -36,6 +36,7 @@ jobs:
         ghcr.io/klutchell/unbound,
         klutchell/unbound
       toggle_auto_merge: false
+      token_retrieval_mode: user
       docker_runs_on: >
         {
           "linux/amd64": ["ubuntu-24.04"],
