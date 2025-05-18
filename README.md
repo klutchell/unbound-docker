@@ -39,16 +39,13 @@ docker run --name unbound \
 The cache DB module was compiled into daemon, but is disabled by default. To
 enable this module, follow this steps:
 
-- Modify
-  [unbound.conf](https://unbound.docs.nlnetlabs.nl/en/latest/manpages/unbound.conf.html#cache-db-module-options)
-  to add the following directive:
-
-  > module-config: "validator cachedb iterator"
-
-- Create a `cachedb.conf` under your custom configuration directory
-  `/path/to/config/custom.conf.d` with Redis credentials:
+- Create a `cachedb.conf` under your custom configuration directory `/path/to/config/custom.conf.d`;
+- Add a `server` directive with module configuration to enable `cachedb` module;
+- Add a `cachedb` directive with Redis credentials;
 
 ```bash
+server:
+  module-config: "validator cachedb iterator"
 cachedb:
   backend: "redis"
   redis-server-host: redis
