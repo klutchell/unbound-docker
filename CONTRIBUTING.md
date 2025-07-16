@@ -136,8 +136,7 @@ People _love_ thorough bug reports. I'm not even kidding.
 
 4. Commit and push changes to `Dockerfile` and `unbound.conf.example`.
 
-[Here](https://github.com/klutchell/unbound-docker/pull/235) is an example pull
-request for reference.
+[Example pull request #235](https://github.com/klutchell/unbound-docker/pull/235) for reference.
 
 ## License
 
