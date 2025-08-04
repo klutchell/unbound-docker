@@ -16,6 +16,8 @@ services:
     environment:
       # Sets upstream DNS to unbound sibling container
       FTLCONF_dns_upstreams: unbound
+      # If using Docker's default `bridge` network setting the dns listening mode should be set to 'all'
+      FTLCONF_dns_listeningMode: all
       # Set the appropriate timezone for your location
       # See https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
       # e.g. Europe/Paris, US/Pacific, Asia/Tokyo
