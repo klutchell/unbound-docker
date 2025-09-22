@@ -36,7 +36,6 @@ jobs:
         ghcr.io/klutchell/unbound,
         klutchell/unbound
       toggle_auto_merge: false
-      token_retrieval_mode: user
       docker_runs_on: >
         {
           "linux/amd64": ["ubuntu-24.04"],
