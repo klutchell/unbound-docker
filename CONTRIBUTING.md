@@ -85,6 +85,11 @@ People _love_ thorough bug reports. I'm not even kidding.
 
 ## Testing
 
+> [!NOTE] These tests resolve names recursively, so outbound DNS (UDP/TCP port
+> 53) must be allowed on the network where they run. On firewalled networks the
+> queries will hang or appear to fail for non-Unbound reasons; CI is the
+> authoritative source of test results.
+
 1. Run a detached unbound container
 
    ```bash
@@ -136,7 +141,36 @@ People _love_ thorough bug reports. I'm not even kidding.
 
 4. Commit and push changes to `Dockerfile` and `unbound.conf.example`.
 
-[Example pull request #235](https://github.com/klutchell/unbound-docker/pull/235) for reference.
+For the current pattern, see recent commits touching the Unbound `ARG` lines:
+
+```bash
+git log --oneline -- Dockerfile | grep -i "update unbound" | head -5
+```
+
+## Tagging a release (maintainers only)
+
+This section applies to repository maintainers. Contributors do not need to tag
+releases — the maintainer will tag once your bump PR is merged.
+
+After an Unbound bump PR is merged to `main`, tag the release on the **content
+commit** (the "Update Unbound to release X.Y.Z" commit), not the merge commit
+GitHub creates on top.
+
+```bash
+git fetch origin
+# Find the content commit on origin/main
+git log origin/main --grep='Update Unbound to release' --format='%H %s' -1
+
+# Create a signed, annotated tag with the version as the message body
+git tag -s vX.Y.Z -m "vX.Y.Z" <content-commit-sha>
+
+# Push the tag
+git push origin vX.Y.Z
+```
+
+Tags follow `vMAJOR.MINOR.PATCH` matching the upstream Unbound version, are
+annotated (not lightweight), and are GPG-signed. The tag message body is the
+bare version string — no release notes.
 
 ## License
 
