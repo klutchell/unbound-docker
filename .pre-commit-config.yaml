@@ -20,6 +20,6 @@ repos:
     -   id: actionlint-docker
 
 -   repo: https://github.com/hadolint/hadolint
-    rev: v2.14.0
+    rev: v2.15.1
     hooks:
     -   id: hadolint-docker
