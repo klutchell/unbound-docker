@@ -1,16 +1,22 @@
 volumes:
-  redis:
+  valkey:
 
 services:
-  redis:
-    image: redis:latest
-    container_name: redis
-    hostname: redis
+  valkey:
+    image: valkey/valkey:alpine
+    container_name: valkey
+    read_only: true
     restart: unless-stopped
+    command: >
+      valkey-server
+      --save 86400 1
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru
+      --stop-writes-on-bgsave-error no
     volumes:
-      - redis:/data
+      - valkey:/data
     healthcheck:
-      test: "[ $$(redis-cli ping) = 'PONG' ]"
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 30s
       timeout: 3s
       retries: 3
@@ -29,4 +35,4 @@ services:
       - ./custom.conf.d:/etc/unbound/custom.conf.d:ro
     restart: unless-stopped
     depends_on:
-      - redis
+      - valkey
