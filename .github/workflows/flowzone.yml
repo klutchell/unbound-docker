@@ -4,28 +4,15 @@ on:
   pull_request:
     types: [opened, synchronize, closed]
     branches: [main, master]
-  pull_request_target:
-    types: [opened, synchronize, closed]
-    branches: [main, master]
   push:
     tags:
       - '*.*.*'
+    branches: [main, master]
 
 jobs:
   flowzone:
     name: Flowzone
     uses: product-os/flowzone/.github/workflows/flowzone.yml@e092fd7d0f26c0e2d9b51f551f7e63617eab56e6 # v23.0.14
-    # prevent duplicate workflow executions for pull_request and pull_request_target
-    if: |
-      (
-        github.event.pull_request.head.repo.full_name == github.repository &&
-        github.event_name == 'pull_request'
-      ) || (
-        github.event.pull_request.head.repo.full_name != github.repository &&
-        github.event_name == 'pull_request_target'
-      ) || (
-        github.event_name == 'push'
-      )
     secrets:
       GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
       DOCKERHUB_USER: ${{ secrets.DOCKER_REGISTRY_USER }}
