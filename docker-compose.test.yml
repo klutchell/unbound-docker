@@ -55,5 +55,8 @@ services:
         ! dig @server -p 5353 fail03.dnssec.works +dnssec +multi | tee /dev/stderr | grep NOERROR
         ! dig @server -p 5353 fail04.dnssec.works +dnssec +multi | tee /dev/stderr | grep NOERROR
 
-        # test ECS
-        dig @server -p 5353 TXT o-o.myaddr.l.google.com +short | tee /dev/stderr | grep edns0-client-subnet
+        # test ECS. The client must supply the subnet: the container network is
+        # RFC1918, and authorities ignore a private prefix. Assert only that
+        # unbound echoes the option back, since whether an authority honours
+        # ECS (and therefore the returned scope) is not ours to control.
+        dig @server -p 5353 TXT o-o.myaddr.l.google.com +subnet=203.0.113.0/24 +nocmd | tee /dev/stderr | grep -E '; CLIENT-SUBNET: 203\.0\.113\.0/24/'
