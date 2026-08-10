@@ -55,8 +55,14 @@ services:
         ! dig @server -p 5353 fail03.dnssec.works +dnssec +multi | tee /dev/stderr | grep NOERROR
         ! dig @server -p 5353 fail04.dnssec.works +dnssec +multi | tee /dev/stderr | grep NOERROR
 
-        # test ECS. The client must supply the subnet: the container network is
-        # RFC1918, and authorities ignore a private prefix. Assert only that
-        # unbound echoes the option back, since whether an authority honours
-        # ECS (and therefore the returned scope) is not ours to control.
-        dig @server -p 5353 TXT o-o.myaddr.l.google.com +subnet=203.0.113.0/24 +nocmd | tee /dev/stderr | grep -E '; CLIENT-SUBNET: 203\.0\.113\.0/24/'
+        # Check the subnet module is built in and the send-client-subnet example
+        # config is active. A real ECS round-trip is deliberately not asserted
+        # here: authorities refuse non-routable prefixes, and whether they echo
+        # the option back varies between anycast instances. When they do not
+        # echo it, unbound re-resolves without the subnet and the answer reaches
+        # the client with no CLIENT-SUBNET option, so every client-visible ECS
+        # assertion is a coin flip. Testing the round-trip needs an
+        # authoritative server we control.
+        docker exec $${server_id} unbound -V | grep 'Linked modules:.*subnetcache'
+        docker logs $${server_id} 2>&1 | grep 'init module 0: subnetcache'
+        docker logs $${server_id} 2>&1 | grep 'send-client-subnet: 0\.0\.0\.0/0'
