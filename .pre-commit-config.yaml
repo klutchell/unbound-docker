@@ -10,7 +10,7 @@ repos:
     -   id: check-added-large-files
 
 -   repo: https://github.com/renovatebot/pre-commit-hooks
-    rev: 44.103.7
+    rev: 44.115.10
     hooks:
     -   id: renovate-config-validator
 
