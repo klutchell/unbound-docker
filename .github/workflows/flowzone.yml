@@ -12,7 +12,7 @@ on:
 jobs:
   flowzone:
     name: Flowzone
-    uses: product-os/flowzone/.github/workflows/flowzone.yml@af835891dbc079c96c98387b1c0395da2bcc19ea # v23.3.67
+    uses: product-os/flowzone/.github/workflows/flowzone.yml@5ce5ba99b03c39c5b53cf1065d76efe8c7e6b7f5 # v23.3.68
     secrets:
       GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
       DOCKERHUB_USER: ${{ secrets.DOCKER_REGISTRY_USER }}
