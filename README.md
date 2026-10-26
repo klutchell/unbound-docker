@@ -39,7 +39,7 @@ docker run --name unbound \
 The cache DB module was compiled into daemon, but is disabled by default. To
 enable this module, follow this steps:
 
-- You will need a Redis-protocol-compatible backend (e.g. Redis or Valkey) running and reachable from the Unbound container; see [examples/redis](examples/redis) for a full docker-compose example;
+- You will need a Redis-protocol-compatible backend (e.g. Redis or Valkey) running and reachable from the Unbound container; see [examples/redis](https://github.com/klutchell/unbound-docker/tree/main/examples/redis) for a full docker-compose example;
 - Create a `cachedb.conf` under your custom configuration directory `/path/to/config/custom.conf.d`;
 - Add a `server` directive with module configuration to enable `cachedb` module;
 - Add a `cachedb` directive with Valkey (Redis-compatible) credentials;
@@ -56,10 +56,10 @@ cachedb:
 
 Files must be readable by user/group `101:102` or world.
 
-Examples of docker-compose usage can be found in [examples](examples).
+Examples of docker-compose usage can be found in [examples](https://github.com/klutchell/unbound-docker/tree/main/examples).
 
 ## License
 
-This software is licensed under the [BSD 3-Clause License](LICENSE.md).
+This software is licensed under the [BSD 3-Clause License](https://github.com/klutchell/unbound-docker/blob/main/LICENSE.md).
 
 Original software is by NLnet Labs: <https://unbound.net>
