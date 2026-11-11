@@ -56,6 +56,23 @@ cachedb:
 
 Files must be readable by user/group `101:102` or world.
 
+### Optional: Reload configuration without restarting
+
+Unbound reloads its configuration on `SIGHUP`.
+
+```bash
+docker kill -s HUP unbound
+```
+
+To use `unbound-control` instead, copy
+[remote-control.conf.example](https://github.com/klutchell/unbound-docker/blob/main/rootfs_overlay/etc/unbound/custom.conf.d/remote-control.conf.example)
+to `remote-control.conf` in your custom configuration directory and restart
+once. `fast_reload` keeps the cache, while `reload` flushes it.
+
+```bash
+docker exec unbound unbound-control fast_reload
+```
+
 Examples of docker-compose usage can be found in [examples](https://github.com/klutchell/unbound-docker/tree/main/examples).
 
 ## License
