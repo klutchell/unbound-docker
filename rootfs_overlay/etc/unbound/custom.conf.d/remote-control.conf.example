@@ -1,3 +1,8 @@
+# Enable unbound-control so config changes can be applied without a restart:
+#   docker exec unbound unbound-control fast_reload
+# The control port listens on 127.0.0.1 inside the container, so TLS is not
+# needed. Do not publish port 8953 or change control-interface without
+# enabling control-use-cert, or anyone who can reach it can control unbound.
 remote-control:
 	control-enable: yes
 	control-use-cert: no

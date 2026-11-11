@@ -45,6 +45,11 @@ services:
 
         sleep 5
 
+        docker exec $${server_id} unbound-control status
+        docker exec $${server_id} unbound-control fast_reload
+        docker kill -s HUP $${server_id}
+        sleep 2
+
         docker exec $${server_id} drill-hc -p 5353 dnssec.works @127.0.0.1 | tee /dev/stderr | grep NOERROR
         ! docker exec $${server_id} drill-hc -p 5353 foo.local @127.0.0.1 | tee /dev/stderr | grep NOERROR
         ! docker exec $${server_id} drill-hc -p 5353 bar.local @127.0.0.1 | tee /dev/stderr | grep NOERROR
