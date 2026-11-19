@@ -158,32 +158,39 @@ git log --oneline -- Dockerfile | grep -iE "bump unbound|update unbound" | head 
 This section applies to repository maintainers. Contributors do not need to tag
 releases — the maintainer will tag once your bump PR is merged.
 
-> **Automated:** When a `bump/unbound-*` PR merges, the
-> [`Tag Unbound release`](.github/workflows/tag-unbound.yml) workflow re-verifies the
-> pinned SHA256 against the upstream tarball and creates the `vX.Y.Z` tag on the content
-> commit automatically (an unsigned annotated tag), which triggers the image publish.
-> The manual, GPG-signed procedure below remains the fallback for releases cut outside
-> that flow.
+Every published image comes from a git tag `vX.Y.Z+YYYYMMDD` on a content commit.
+The date makes each tag unique, so a git tag never moves.
 
-After an Unbound bump PR is merged to `main`, tag the release on the **content
-commit** (the "Bump Unbound to X.Y.Z" commit), not the merge commit GitHub creates
-on top.
+> **Automated:** The [`Tag Unbound release`](.github/workflows/tag-release.yml)
+> workflow creates the tag (an unsigned annotated tag) when one of these happens:
+>
+> - A PR that changes `UNBOUND_VERSION` merges. The workflow re-verifies the
+>   pinned SHA256 against the upstream tarball first.
+> - A PR that changes `FROM alpine` merges.
+> - A maintainer uses **Run workflow** on `main`, for example for a package fix
+>   that ships between Alpine point releases.
+
+Flowzone publishes `vX.Y.Z-YYYYMMDD`, `X.Y.Z`, and `latest` from the tag. Then
+[`Retag Unbound release`](.github/workflows/retag-release.yml) points the
+`vX.Y.Z` image tag at the same digest. Pin `vX.Y.Z-YYYYMMDD` for an image that
+never changes.
+
+To tag by hand, tag the **content commit** (for example the "Bump Unbound to
+X.Y.Z" commit), not the merge commit GitHub creates on top.
 
 ```bash
 git fetch origin
 # Find the content commit on origin/main
-git log origin/main --grep='Bump Unbound to' --format='%H %s' -1
+git log origin/main -3 --format='%H %s'
 
-# Create a signed, annotated tag with the version as the message body
-git tag -s vX.Y.Z -m "vX.Y.Z" <content-commit-sha>
+# Create a signed, annotated tag with the tag name as the message body
+git tag -s vX.Y.Z+YYYYMMDD -m "vX.Y.Z+YYYYMMDD" <content-commit-sha>
 
 # Push the tag
-git push origin vX.Y.Z
+git push origin vX.Y.Z+YYYYMMDD
 ```
 
-Tags follow `vMAJOR.MINOR.PATCH` matching the upstream Unbound version, are
-annotated (not lightweight), and are GPG-signed. The tag message body is the
-bare version string — no release notes.
+Tags created before this scheme are plain `vX.Y.Z`.
 
 ## License
 
