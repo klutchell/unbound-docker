@@ -1,0 +1,114 @@
+name: Tag Unbound release
+
+# Tags vX.Y.Z+YYYYMMDD on the content commit. Flowzone publishes vX.Y.Z-YYYYMMDD,
+# X.Y.Z and latest from that tag, then retag-release.yml adds vX.Y.Z.
+#
+# Triggers:
+# - a merged PR that changes UNBOUND_VERSION (new release)
+# - a merged PR that changes `FROM alpine` (rebuild)
+# - Run workflow on main (rebuild for a package fix between Alpine point releases)
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+    paths: [Dockerfile]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  tag:
+    if: |
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      github.event.pull_request.merged == true
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout merge commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Decide whether to tag
+        id: decide
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          set -euo pipefail
+          echo "date=$(date -u +%Y%m%d)" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "tag=true" >> "$GITHUB_OUTPUT"
+            echo "version_changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          diff=$(git diff "${MERGE_SHA}^1" "${MERGE_SHA}" -- Dockerfile)
+          if grep -qE '^[+-]ARG UNBOUND_VERSION=' <<< "$diff"; then
+            echo "tag=true" >> "$GITHUB_OUTPUT"
+            echo "version_changed=true" >> "$GITHUB_OUTPUT"
+          elif grep -qE '^[+-]FROM alpine:' <<< "$diff"; then
+            echo "tag=true" >> "$GITHUB_OUTPUT"
+            echo "version_changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=false" >> "$GITHUB_OUTPUT"
+            echo "version_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify only expected files changed
+        if: startsWith(github.event.pull_request.head.ref, 'bump/unbound-')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          changed=$(gh pr diff "$PR_NUMBER" --repo "$REPO" --name-only)
+          echo "Changed files:"
+          echo "$changed"
+          unexpected=$(echo "$changed" | grep -v -E '^(Dockerfile|rootfs_overlay/etc/unbound/unbound\.conf\.example)$' || true)
+          if [ -n "$unexpected" ]; then
+            echo "::error::Unexpected files changed in this bump PR, refusing to tag: $unexpected"
+            exit 1
+          fi
+
+      - name: Resolve content commit
+        id: commit
+        if: steps.decide.outputs.tag == 'true'
+        uses: ./.github/actions/resolve-release
+        with:
+          sha: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
+
+      - name: Re-verify SHA256
+        if: steps.decide.outputs.version_changed == 'true'
+        env:
+          CONTENT_SHA: ${{ steps.commit.outputs.sha }}
+          VERSION: ${{ steps.commit.outputs.version }}
+        run: |
+          set -euo pipefail
+          pinned_sha256=$(git show "${CONTENT_SHA}:Dockerfile" | grep -oP '(?<=^ARG UNBOUND_SHA256=")[^"]+')
+          actual_sha256=$(curl -fsSL "https://nlnetlabs.nl/downloads/unbound/unbound-${VERSION}.tar.gz" | sha256sum | awk '{print $1}')
+          if [ "$actual_sha256" != "$pinned_sha256" ]; then
+            echo "::error::SHA256 mismatch for ${VERSION}: Dockerfile pins ${pinned_sha256}, tarball is actually ${actual_sha256}. Refusing to tag."
+            exit 1
+          fi
+
+      - name: Generate app token
+        id: app-token
+        if: steps.decide.outputs.tag == 'true'
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.FLOWZONE_APP_ID }}
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          permission-contents: write
+
+      - name: Create tag
+        if: steps.decide.outputs.tag == 'true'
+        uses: ./.github/actions/create-tag
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          tag: v${{ steps.commit.outputs.version }}+${{ steps.decide.outputs.date }}
+          sha: ${{ steps.commit.outputs.sha }}

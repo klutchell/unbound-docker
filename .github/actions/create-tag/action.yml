@@ -1,0 +1,45 @@
+name: Create tag
+description: Create an annotated tag via the REST API, unless the tag already exists. The tag message is the tag name.
+
+inputs:
+  token:
+    description: Token with contents write. Use a GitHub App token so the tag push triggers Flowzone.
+    required: true
+  tag:
+    description: Tag name.
+    required: true
+  sha:
+    description: Commit to tag.
+    required: true
+
+outputs:
+  created:
+    description: "'true' if the tag was created, 'false' if it already existed."
+    value: ${{ steps.create.outputs.created }}
+
+runs:
+  using: composite
+  steps:
+    - name: Create tag
+      id: create
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ github.repository }}
+        TAG: ${{ inputs.tag }}
+        SHA: ${{ inputs.sha }}
+      run: |
+        set -euo pipefail
+        if gh api "repos/${REPO}/git/ref/tags/${TAG}" >/dev/null 2>&1; then
+          echo "::notice::Tag ${TAG} already exists, skipping"
+          echo "created=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+        tag_sha=$(jq -n --arg tag "$TAG" --arg object "$SHA" --arg date "$now" \
+          '{tag: $tag, message: $tag, object: $object, type: "commit", tagger: {name: "github-actions[bot]", email: "github-actions[bot]@users.noreply.github.com", date: $date}}' \
+          | gh api "repos/${REPO}/git/tags" --input - --jq .sha)
+
+        gh api "repos/${REPO}/git/refs" -f ref="refs/tags/${TAG}" -f sha="${tag_sha}"
+        echo "created=true" >> "$GITHUB_OUTPUT"

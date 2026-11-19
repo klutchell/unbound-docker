@@ -1,0 +1,75 @@
+name: Retag Unbound release
+
+# Flowzone publishes vX.Y.Z-YYYYMMDD and X.Y.Z from a vX.Y.Z+YYYYMMDD tag, but not
+# vX.Y.Z. This points vX.Y.Z at the same image after Flowzone succeeds.
+
+on:
+  workflow_run:
+    workflows: [Flowzone]
+    types: [completed]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  retag:
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      contains(github.event.workflow_run.head_branch, '+')
+    runs-on: ubuntu-24.04
+    env:
+      IMAGES: docker.io/klutchell/unbound ghcr.io/klutchell/unbound
+    steps:
+      - name: Parse release tag
+        id: tags
+        env:
+          GIT_TAG: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          set -euo pipefail
+          if ! grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+\+[0-9]{8}$' <<< "$GIT_TAG"; then
+            echo "::error::'${GIT_TAG}' is not a vX.Y.Z+YYYYMMDD release tag"
+            exit 1
+          fi
+          version_tag="${GIT_TAG%%+*}"
+          {
+            echo "source=${GIT_TAG/+/-}"
+            echo "target=${version_tag}"
+            echo "bare=${version_tag#v}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Setup crane
+        uses: imjasonh/setup-crane@feee3b6bb0d4c68370f256a4502498c9227e5c6b # v0.7
+        with:
+          version: v0.22.1
+
+      - name: Login to registries
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKER_REGISTRY_USER }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKER_REGISTRY_PASS }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          crane auth login index.docker.io -u "$DOCKERHUB_USER" --password-stdin <<< "$DOCKERHUB_TOKEN"
+          crane auth login ghcr.io -u "$GHCR_USER" --password-stdin <<< "$GHCR_TOKEN"
+
+      - name: Point version tag at the release
+        env:
+          SOURCE: ${{ steps.tags.outputs.source }}
+          TARGET: ${{ steps.tags.outputs.target }}
+          BARE: ${{ steps.tags.outputs.bare }}
+        run: |
+          set -euo pipefail
+          for image in $IMAGES; do
+            source_digest=$(crane digest "${image}:${SOURCE}")
+            bare_digest=$(crane digest "${image}:${BARE}")
+            # a newer release moved X.Y.Z, so leave vX.Y.Z to that run
+            if [ "$source_digest" != "$bare_digest" ]; then
+              echo "::warning::${image}:${BARE} is ${bare_digest}, not ${SOURCE} (${source_digest}). Skipping ${TARGET}."
+              continue
+            fi
+            crane tag "${image}:${SOURCE}" "$TARGET"
+            echo "${image}:${TARGET} -> ${source_digest}"
+          done

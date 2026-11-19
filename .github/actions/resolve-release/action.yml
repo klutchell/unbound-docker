@@ -1,0 +1,34 @@
+name: Resolve release commit
+description: Resolve the content commit behind a merge on main, and the Unbound version it pins.
+
+inputs:
+  sha:
+    description: Merge commit SHA on main.
+    required: true
+
+outputs:
+  sha:
+    description: Content commit SHA.
+    value: ${{ steps.resolve.outputs.sha }}
+  version:
+    description: UNBOUND_VERSION from the Dockerfile at the content commit.
+    value: ${{ steps.resolve.outputs.version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve content commit and version
+      id: resolve
+      shell: bash
+      env:
+        MERGE_SHA: ${{ inputs.sha }}
+      run: |
+        set -euo pipefail
+        # non-squash merges put the actual content on the merge commit's 2nd parent;
+        # squash merges make the merge commit itself the content commit (no 2nd parent)
+        if ! content_sha=$(git rev-parse --verify -q "${MERGE_SHA}^2"); then
+          content_sha="$MERGE_SHA"
+        fi
+        version=$(git show "${content_sha}:Dockerfile" | grep -oP '(?<=^ARG UNBOUND_VERSION=)\S+')
+        echo "sha=$content_sha" >> "$GITHUB_OUTPUT"
+        echo "version=$version" >> "$GITHUB_OUTPUT"
